@@ -7079,6 +7079,9 @@ dependencies = [
  "spl-governance-test-sdk",
  "spl-governance-tools",
  "spl-token 4.0.1",
+ "spl-token-2022 3.0.2",
+ "spl-transfer-hook-example",
+ "spl-transfer-hook-interface 0.6.3",
  "thiserror",
 ]
 
@@ -7155,6 +7158,7 @@ dependencies = [
  "solana-program-test",
  "solana-sdk",
  "spl-token 4.0.1",
+ "spl-token-2022 3.0.2",
  "thiserror",
 ]
 

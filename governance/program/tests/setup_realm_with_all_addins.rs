@@ -24,7 +24,7 @@ async fn test_create_realm_with_all_addins() {
     // Act
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_setup_args)
+        .with_realm_using_args(&realm_setup_args, false)
         .await;
 
     // Assert
@@ -54,7 +54,7 @@ async fn test_set_all_addins_for_realm_without_addins() {
     let mut realm_setup_args = RealmSetupArgs::default();
 
     let mut realm_cookie = governance_test
-        .with_realm_using_args(&realm_setup_args)
+        .with_realm_using_args(&realm_setup_args, false)
         .await;
 
     realm_setup_args
@@ -102,7 +102,7 @@ async fn test_set_all_addin_for_realm_without_council_and_addins() {
     };
 
     let mut realm_cookie = governance_test
-        .with_realm_using_args(&realm_setup_args)
+        .with_realm_using_args(&realm_setup_args, false)
         .await;
 
     realm_setup_args
@@ -211,7 +211,7 @@ async fn test_set_realm_config_without_addins_for_realm_without_addins() {
     let mut realm_setup_args = RealmSetupArgs::default();
 
     let mut realm_cookie = governance_test
-        .with_realm_using_args(&realm_setup_args)
+        .with_realm_using_args(&realm_setup_args, false)
         .await;
 
     realm_setup_args

@@ -267,7 +267,7 @@ async fn test_create_governance_with_community_disabled_error() {
     };
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     // Set token deposit amount to max

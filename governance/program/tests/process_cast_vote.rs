@@ -1404,7 +1404,7 @@ async fn test_cast_vote_with_strict_tipping_and_inflated_max_vote_weight() {
     };
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let governance_config = governance_test.get_default_governance_config();

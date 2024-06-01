@@ -417,7 +417,7 @@ async fn test_withdraw_council_tokens_with_cannot_withdraw_membership_tokens_err
     realm_config_args.council_token_config_args.token_type = GoverningTokenType::Membership;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let token_owner_record_cookie = governance_test

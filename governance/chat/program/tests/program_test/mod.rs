@@ -104,6 +104,7 @@ impl GovernanceChatProgramTest {
                 &governing_token_mint_keypair,
                 &governing_token_mint_authority.pubkey(),
                 None,
+                false
             )
             .await;
 
@@ -126,6 +127,7 @@ impl GovernanceChatProgramTest {
             name.clone(),
             1,
             MintMaxVoterWeightSource::FULL_SUPPLY_FRACTION,
+            None
         );
 
         self.bench

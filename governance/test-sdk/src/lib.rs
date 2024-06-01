@@ -16,7 +16,8 @@ use {
         signer::Signer,
         transaction::Transaction,
     },
-    spl_token::instruction::{set_authority, AuthorityType},
+    spl_token::{instruction::{set_authority, AuthorityType}, state::Mint},
+    spl_token_2022::state::Mint as Mint2022,
     std::borrow::Borrow,
     tools::clone_keypair,
 };
@@ -123,26 +124,48 @@ impl ProgramTestBench {
         mint_keypair: &Keypair,
         mint_authority: &Pubkey,
         freeze_authority: Option<&Pubkey>,
+        is_token_2022: bool,
     ) {
-        let mint_rent = self.rent.minimum_balance(spl_token::state::Mint::LEN);
-
-        let instructions = [
+        let instructions = if is_token_2022 {
+        let mint_rent = self.rent.minimum_balance(Mint2022::LEN);
+        [
             system_instruction::create_account(
                 &self.context.payer.pubkey(),
                 &mint_keypair.pubkey(),
                 mint_rent,
-                spl_token::state::Mint::LEN as u64,
-                &spl_token::id(),
+                Mint2022::LEN as u64,
+                &spl_token_2022::id(),
             ),
-            spl_token::instruction::initialize_mint(
-                &spl_token::id(),
+            spl_token_2022::instruction::initialize_mint(
+                &spl_token_2022::id(),
                 &mint_keypair.pubkey(),
                 mint_authority,
                 freeze_authority,
                 0,
             )
             .unwrap(),
-        ];
+        ]
+        } else {
+            let mint_rent = self.rent.minimum_balance(Mint::LEN);
+            [
+                system_instruction::create_account(
+                    &self.context.payer.pubkey(),
+                    &mint_keypair.pubkey(),
+                    mint_rent,
+                    Mint::LEN as u64,
+                    &spl_token::id(),
+                ),
+                spl_token::instruction::initialize_mint(
+                    &spl_token::id(),
+                    &mint_keypair.pubkey(),
+                    mint_authority,
+                    freeze_authority,
+                    0,
+                )
+                .unwrap(),
+            ]
+        };
+
 
         self.process_transaction(&instructions, Some(&[mint_keypair]))
             .await

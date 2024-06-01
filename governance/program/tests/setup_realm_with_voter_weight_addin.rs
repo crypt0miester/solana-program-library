@@ -20,7 +20,7 @@ async fn test_create_realm_with_voter_weight_addin() {
     // Act
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_setup_args)
+        .with_realm_using_args(&realm_setup_args, false)
         .await;
 
     // Assert
@@ -48,7 +48,7 @@ async fn test_set_realm_voter_weight_addin_for_realm_without_addins() {
         .voter_weight_addin = None;
 
     let mut realm_cookie = governance_test
-        .with_realm_using_args(&realm_setup_args)
+        .with_realm_using_args(&realm_setup_args, false)
         .await;
 
     realm_setup_args
@@ -87,7 +87,7 @@ async fn test_set_realm_voter_weight_addin_for_realm_without_council_and_addins(
     };
 
     let mut realm_cookie = governance_test
-        .with_realm_using_args(&realm_setup_args)
+        .with_realm_using_args(&realm_setup_args, false)
         .await;
 
     realm_setup_args
@@ -127,7 +127,7 @@ async fn test_set_realm_voter_weight_addin_for_realm_with_existing_voter_weight_
         .voter_weight_addin = governance_test.voter_weight_addin_id;
 
     let mut realm_cookie = governance_test
-        .with_realm_using_args(&realm_setup_args)
+        .with_realm_using_args(&realm_setup_args, false)
         .await;
 
     let community_voter_weight_addin_address = Pubkey::new_unique();
@@ -172,7 +172,7 @@ async fn test_set_realm_config_with_no_voter_weight_addin_for_realm_without_addi
         .voter_weight_addin = None;
 
     let mut realm_cookie = governance_test
-        .with_realm_using_args(&realm_setup_args)
+        .with_realm_using_args(&realm_setup_args, false)
         .await;
 
     realm_setup_args

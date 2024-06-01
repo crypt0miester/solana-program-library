@@ -20,7 +20,7 @@ async fn test_create_realm_with_max_voter_weight_addin() {
     // Act
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_setup_args)
+        .with_realm_using_args(&realm_setup_args, false)
         .await;
 
     // Assert
@@ -45,7 +45,7 @@ async fn test_set_realm_max_voter_weight_addin_for_realm_without_addins() {
     let mut realm_setup_args = RealmSetupArgs::default();
 
     let mut realm_cookie = governance_test
-        .with_realm_using_args(&realm_setup_args)
+        .with_realm_using_args(&realm_setup_args, false)
         .await;
 
     realm_setup_args
@@ -84,7 +84,7 @@ async fn test_set_realm_max_voter_weight_addin_for_realm_without_council_and_add
     };
 
     let mut realm_cookie = governance_test
-        .with_realm_using_args(&realm_setup_args)
+        .with_realm_using_args(&realm_setup_args, false)
         .await;
 
     realm_setup_args
@@ -165,7 +165,7 @@ async fn test_set_realm_config_with_no_max_voter_weight_addin_for_realm_without_
     let mut realm_setup_args = RealmSetupArgs::default();
 
     let mut realm_cookie = governance_test
-        .with_realm_using_args(&realm_setup_args)
+        .with_realm_using_args(&realm_setup_args, false)
         .await;
 
     realm_setup_args

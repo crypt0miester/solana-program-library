@@ -201,7 +201,7 @@ impl GovernanceProgramTest {
     #[allow(dead_code)]
     pub async fn with_realm(&mut self) -> RealmCookie {
         let realm_setup_args = RealmSetupArgs::default();
-        self.with_realm_using_args(&realm_setup_args).await
+        self.with_realm_using_args(&realm_setup_args, false).await
     }
 
     #[allow(dead_code)]
@@ -235,13 +235,14 @@ impl GovernanceProgramTest {
                 .max_voter_weight_addin = self.max_voter_weight_addin_id;
         }
 
-        self.with_realm_using_args(&realm_setup_args).await
+        self.with_realm_using_args(&realm_setup_args, false).await
     }
 
     #[allow(dead_code)]
     pub async fn with_realm_using_args(
         &mut self,
         realm_setup_args: &RealmSetupArgs,
+        is_token_2022: bool,
     ) -> RealmCookie {
         let name = format!("Realm #{}", self.next_realm_id).to_string();
         self.next_realm_id += 1;
@@ -262,6 +263,7 @@ impl GovernanceProgramTest {
                 &community_token_mint_keypair,
                 &community_token_mint_authority.pubkey(),
                 None,
+                is_token_2022
             )
             .await;
 
@@ -284,6 +286,7 @@ impl GovernanceProgramTest {
                     &council_token_mint_keypair,
                     &council_token_mint_authority.pubkey(),
                     None,
+                    is_token_2022,
                 )
                 .await;
 
@@ -324,6 +327,12 @@ impl GovernanceProgramTest {
                 .clone(),
         };
 
+        let spl_token_program = if is_token_2022 {
+            Some(spl_token_2022::id())
+        } else {
+            None
+        };
+
         let create_realm_ix = create_realm(
             &self.program_id,
             &realm_authority.pubkey(),
@@ -337,6 +346,7 @@ impl GovernanceProgramTest {
             realm_setup_args
                 .community_mint_max_voter_weight_source
                 .clone(),
+            spl_token_program
         );
 
         self.bench
@@ -442,6 +452,7 @@ impl GovernanceProgramTest {
             name.clone(),
             min_community_weight_to_create_governance,
             community_mint_max_voter_weight_source,
+            None,
         );
 
         self.bench
@@ -1358,7 +1369,7 @@ impl GovernanceProgramTest {
         let mint_keypair = Keypair::new();
 
         self.bench
-            .create_mint(&mint_keypair, &governance_cookie.address, None)
+            .create_mint(&mint_keypair, &governance_cookie.address, None, false)
             .await;
 
         GovernedMintCookie {
@@ -1376,7 +1387,7 @@ impl GovernanceProgramTest {
         let mint_authority = Keypair::new();
 
         self.bench
-            .create_mint(&mint_keypair, &mint_authority.pubkey(), None)
+            .create_mint(&mint_keypair, &mint_authority.pubkey(), None, false)
             .await;
 
         let token_account_keypair = Keypair::new();

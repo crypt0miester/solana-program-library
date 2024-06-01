@@ -351,7 +351,7 @@ async fn test_deposit_comunity_tokens_with_cannot_deposit_dormant_tokens_error()
     realm_config_args.council_token_config_args.token_type = GoverningTokenType::Dormant;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     // Act

@@ -19,7 +19,24 @@ use {
         instruction::{set_authority, AuthorityType},
         state::{Account, Mint},
     },
+    spl_token_2022::{
+        cmp_pubkeys,
+        extension::{
+            BaseStateWithExtensions,
+            ExtensionType, PodStateWithExtensions, 
+        },
+        state::Account as AccountTokenExtension,
+        pod::PodMint,
+    }
 };
+
+/// Checks if the provided spl_token_program is spl token 2022
+pub fn is_spl_token_2022(spl_token_program_id: &Pubkey) -> bool {
+    if cmp_pubkeys(spl_token_program_id, &spl_token::id()) {
+        return false;
+    }
+    return true;
+}
 
 /// Creates and initializes SPL token account with PDA using the provided PDA
 /// seeds
@@ -36,12 +53,27 @@ pub fn create_spl_token_account_signed<'a>(
     rent_sysvar_info: &AccountInfo<'a>,
     rent: &Rent,
 ) -> Result<(), ProgramError> {
+    let spl_token_program_id = spl_token_info.key;
+    // Get the token space for if the token has extensions.
+    let space = if is_spl_token_2022(spl_token_program_id) {
+        let mint_data = token_mint_info.data.borrow();
+
+        let state = PodStateWithExtensions::<PodMint>::unpack(&mint_data)
+            .map_err(|_| Into::<ProgramError>::into(GovernanceError::InvalidGoverningTokenMint))?;
+        let mint_extensions = state.get_extension_types()?;
+        let required_extensions =
+            ExtensionType::get_required_init_account_extensions(&mint_extensions);
+        ExtensionType::try_calculate_account_len::<AccountTokenExtension>(&required_extensions)?
+    } else {
+        spl_token_2022::state::Account::get_packed_len()
+    };
+
     let create_account_instruction = system_instruction::create_account(
         payer_info.key,
         token_account_info.key,
-        1.max(rent.minimum_balance(spl_token::state::Account::get_packed_len())),
-        spl_token::state::Account::get_packed_len() as u64,
-        &spl_token::id(),
+        1.max(rent.minimum_balance(space)),
+        space as u64,
+        spl_token_program_id,
     );
 
     let (account_address, bump_seed) =
@@ -70,8 +102,8 @@ pub fn create_spl_token_account_signed<'a>(
         &[&signers_seeds[..]],
     )?;
 
-    let initialize_account_instruction = spl_token::instruction::initialize_account(
-        &spl_token::id(),
+    let initialize_account_instruction = spl_token_2022::instruction::initialize_account(
+        spl_token_program_id,
         token_account_info.key,
         token_mint_info.key,
         token_account_owner_info.key,

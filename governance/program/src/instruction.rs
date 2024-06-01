@@ -45,7 +45,7 @@ pub enum GovernanceInstruction {
     ///     The account will be created with the Realm PDA as its owner
     /// 4. `[signer]` Payer
     /// 5. `[]` System
-    /// 6. `[]` SPL Token
+    /// 6. `[]` SPL Token or SPL Token 2022 Program
     /// 7. `[]` Sysvar Rent
     /// 8. `[]` Council Token Mint - optional
     /// 9. `[writable]` Council Token Holding account - optional unless council
@@ -635,11 +635,12 @@ pub fn create_realm(
     name: String,
     min_community_weight_to_create_governance: u64,
     community_mint_max_voter_weight_source: MintMaxVoterWeightSource,
+    spl_token_program: Option<Pubkey>,
 ) -> Instruction {
     let realm_address = get_realm_address(program_id, &name);
     let community_token_holding_address =
         get_governing_token_holding_address(program_id, &realm_address, community_token_mint);
-
+    
     let mut accounts = vec![
         AccountMeta::new(realm_address, false),
         AccountMeta::new_readonly(*realm_authority, false),
@@ -647,7 +648,7 @@ pub fn create_realm(
         AccountMeta::new(community_token_holding_address, false),
         AccountMeta::new(*payer, true),
         AccountMeta::new_readonly(system_program::id(), false),
-        AccountMeta::new_readonly(spl_token::id(), false),
+        AccountMeta::new_readonly(spl_token_program.unwrap_or(spl_token::id()), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
     ];
 

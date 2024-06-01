@@ -24,7 +24,7 @@ async fn test_revoke_community_tokens() {
     realm_config_args.community_token_config_args.token_type = GoverningTokenType::Membership;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let token_owner_record_cookie = governance_test
@@ -62,7 +62,7 @@ async fn test_revoke_council_tokens() {
     realm_config_args.council_token_config_args.token_type = GoverningTokenType::Membership;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let token_owner_record_cookie = governance_test
@@ -100,7 +100,7 @@ async fn test_revoke_own_council_tokens() {
     realm_config_args.council_token_config_args.token_type = GoverningTokenType::Membership;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let token_owner_record_cookie = governance_test
@@ -142,7 +142,7 @@ async fn test_revoke_own_council_tokens_with_owner_must_sign_error() {
     realm_config_args.council_token_config_args.token_type = GoverningTokenType::Membership;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let token_owner_record_cookie = governance_test
@@ -237,7 +237,7 @@ async fn test_revoke_council_tokens_with_mint_authority_must_sign_error() {
     realm_config_args.council_token_config_args.token_type = GoverningTokenType::Membership;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let token_owner_record_cookie = governance_test
@@ -274,7 +274,7 @@ async fn test_revoke_council_tokens_with_invalid_revoke_authority_error() {
     realm_config_args.council_token_config_args.token_type = GoverningTokenType::Membership;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let token_owner_record_cookie = governance_test
@@ -311,7 +311,7 @@ async fn test_revoke_council_tokens_with_invalid_token_holding_error() {
     realm_config_args.council_token_config_args.token_type = GoverningTokenType::Membership;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let token_owner_record_cookie = governance_test
@@ -358,7 +358,7 @@ async fn test_revoke_council_tokens_with_other_realm_config_account_error() {
     realm_config_args.council_token_config_args.token_type = GoverningTokenType::Membership;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let token_owner_record_cookie = governance_test
@@ -398,7 +398,7 @@ async fn test_revoke_council_tokens_with_invalid_realm_config_account_address_er
     realm_config_args.council_token_config_args.token_type = GoverningTokenType::Membership;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let token_owner_record_cookie = governance_test
@@ -438,7 +438,7 @@ async fn test_revoke_council_tokens_with_token_owner_record_for_different_mint_e
     realm_config_args.council_token_config_args.token_type = GoverningTokenType::Membership;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let token_owner_record_cookie = governance_test
@@ -484,7 +484,7 @@ async fn test_revoke_council_tokens_with_too_large_amount_error() {
     realm_config_args.council_token_config_args.token_type = GoverningTokenType::Membership;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let token_owner_record_cookie = governance_test
@@ -521,7 +521,7 @@ async fn test_revoke_council_tokens_with_partial_revoke_amount() {
     realm_config_args.council_token_config_args.token_type = GoverningTokenType::Membership;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let token_owner_record_cookie = governance_test
@@ -561,7 +561,7 @@ async fn test_revoke_council_tokens_with_community_mint_error() {
     realm_config_args.council_token_config_args.token_type = GoverningTokenType::Membership;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let token_owner_record_cookie = governance_test
@@ -611,7 +611,7 @@ async fn test_revoke_council_tokens_with_not_matching_mint_and_authority_error()
     realm_config_args.council_token_config_args.token_type = GoverningTokenType::Membership;
 
     let realm_cookie = governance_test
-        .with_realm_using_args(&realm_config_args)
+        .with_realm_using_args(&realm_config_args, false)
         .await;
 
     let token_owner_record_cookie = governance_test
