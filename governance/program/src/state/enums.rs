@@ -143,6 +143,9 @@ pub enum ProposalState {
 
     /// The Proposal was vetoed
     Vetoed,
+
+    /// The Proposal has expired (Default is 7 days or 604800 seconds)
+    Expired,
 }
 
 /// The type of the vote threshold used to resolve a vote on a Proposal

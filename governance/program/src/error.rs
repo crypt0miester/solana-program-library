@@ -548,6 +548,22 @@ pub enum GovernanceError {
     /// TokenOwnerRecordLockAuthority not found
     #[error("TokenOwnerRecordLockAuthority not found")]
     TokenOwnerRecordLockAuthorityNotFound, // 631
+
+    /// Invalid State: Can't expire Proposal
+    #[error("Invalid State: Can't expire Proposal")]
+    InvalidStateCannotExpireProposal, // 632
+
+    /// Proposal has expired
+    #[error("Proposal has expired")]
+    ProposalExpired, // 633
+
+    /// Can't finalize vote. Proposal has expired
+    #[error("Can't finalize vote. Proposal has expired")]
+    CannotFinalizePropsalExpired, // 634
+
+    /// Cannot execute an expired proposal
+    #[error("Cannot execute an expired proposal")]
+    CannotExecuteAnExpiredProposal, // 635
 }
 
 impl PrintProgramError for GovernanceError {
