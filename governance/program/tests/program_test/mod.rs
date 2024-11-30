@@ -24,7 +24,7 @@ use {
             remove_transaction, revoke_governing_tokens, set_governance_config,
             set_governance_delegate, set_realm_authority, set_realm_config, set_realm_config_item,
             set_token_owner_record_lock, sign_off_proposal, upgrade_program_metadata,
-            withdraw_governing_tokens, AddSignatoryAuthority,
+            withdraw_governing_tokens, expire_proposal, AddSignatoryAuthority,
         },
         processor::process_instruction,
         state::{
@@ -2092,6 +2092,30 @@ impl GovernanceProgramTest {
     }
 
     #[allow(dead_code)]
+    pub async fn expire_proposal(
+        &mut self,
+        proposal_cookie: &ProposalCookie,
+        token_owner_record_cookie: &TokenOwnerRecordCookie,
+    ) -> Result<(), ProgramError> {
+        let expire_proposal_transaction = expire_proposal(
+            &self.program_id,
+            &proposal_cookie.realm,
+            &proposal_cookie.account.governance,
+            &proposal_cookie.address,
+            &token_owner_record_cookie.address,
+        );
+
+        self.bench
+            .process_transaction(
+                &[expire_proposal_transaction],
+                None,
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    #[allow(dead_code)]
     pub async fn with_cast_yes_no_vote(
         &mut self,
         proposal_cookie: &ProposalCookie,
@@ -2291,6 +2315,55 @@ impl GovernanceProgramTest {
             &mut instruction,
         )
         .await
+    }
+
+    #[allow(dead_code)]
+    pub async fn with_multiple_transfer_tokens_transaction(
+        &mut self,
+        governed_token_account_cookie: &GovernedTokenAccountCookie,
+        proposal_cookie: &mut ProposalCookie,
+        token_owner_record_cookie: &TokenOwnerRecordCookie,
+        index: Option<u16>,
+    ) -> Result<(ProposalTransactionCookie, ProposalTransactionCookie), ProgramError> {
+        let token_account_keypair = Keypair::new();
+        self.bench
+            .create_empty_token_account(
+                &token_account_keypair,
+                &governed_token_account_cookie.token_mint,
+                &self.bench.payer.pubkey(),
+            )
+            .await;
+
+        let mut instruction = spl_token::instruction::transfer(
+            &spl_token::id(),
+            &governed_token_account_cookie.address,
+            &token_account_keypair.pubkey(),
+            &proposal_cookie.account.governance,
+            &[],
+            15,
+        )
+        .unwrap();
+
+        let proposal_transaction_1 = self.with_proposal_transaction(
+            proposal_cookie,
+            token_owner_record_cookie,
+            0,
+            index,
+            &mut instruction,
+        )
+        .await
+        .unwrap();
+
+        let proposal_transaction_2 = self.with_proposal_transaction(
+            proposal_cookie,
+            token_owner_record_cookie,
+            0,
+            index,
+            &mut instruction,
+        )
+        .await
+        .unwrap();
+        Ok((proposal_transaction_1, proposal_transaction_2))
     }
 
     #[allow(dead_code)]

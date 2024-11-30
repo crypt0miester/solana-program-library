@@ -617,6 +617,13 @@ pub enum GovernanceInstruction {
         /// Config args
         args: SetRealmConfigItemArgs,
     },
+    /// Expire Proposal by changing its state to Expired
+    ///
+    ///   0. `[]` Realm account
+    ///   1. `[writable]` Governance account
+    ///   2. `[writable]` Proposal account
+    ///   3. `[writable]` TokenOwnerRecord of the Proposal owner
+    ExpireProposal
 }
 
 /// Creates CreateRealm instruction
@@ -1757,6 +1764,31 @@ pub fn set_realm_config_item(
     ];
 
     let instruction = GovernanceInstruction::SetRealmConfigItem { args };
+
+    Instruction {
+        program_id: *program_id,
+        accounts,
+        data: borsh::to_vec(&instruction).unwrap(),
+    }
+}
+
+/// Creates ExpireProposal instruction
+pub fn expire_proposal(
+    program_id: &Pubkey,
+    // Accounts
+    realm: &Pubkey,
+    governance: &Pubkey,
+    proposal: &Pubkey,
+    proposal_owner_record: &Pubkey,
+) -> Instruction {
+    let accounts = vec![
+        AccountMeta::new_readonly(*realm, false),
+        AccountMeta::new(*governance, false),
+        AccountMeta::new(*proposal, false),
+        AccountMeta::new(*proposal_owner_record, false),
+    ];
+
+    let instruction = GovernanceInstruction::ExpireProposal {};
 
     Instruction {
         program_id: *program_id,

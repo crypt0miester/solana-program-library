@@ -32,7 +32,7 @@ mod process_set_token_owner_record_lock;
 mod process_sign_off_proposal;
 mod process_update_program_metadata;
 mod process_withdraw_governing_tokens;
-
+mod process_expire_proposal;
 use {
     crate::{error::GovernanceError, instruction::GovernanceInstruction},
     process_add_required_signatory::*,
@@ -64,6 +64,7 @@ use {
     process_sign_off_proposal::*,
     process_update_program_metadata::*,
     process_withdraw_governing_tokens::*,
+    process_expire_proposal::*,
     solana_program::{
         account_info::AccountInfo, borsh1::try_from_slice_unchecked, entrypoint::ProgramResult,
         msg, program_error::ProgramError, pubkey::Pubkey,
@@ -221,6 +222,10 @@ pub fn process_instruction(
 
         GovernanceInstruction::SetRealmConfigItem { args } => {
             process_set_realm_config_item(program_id, accounts, args)
+        }
+
+        GovernanceInstruction::ExpireProposal => {
+            process_expire_proposal(program_id, accounts)
         }
     }
 }

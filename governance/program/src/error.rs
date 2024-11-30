@@ -564,6 +564,10 @@ pub enum GovernanceError {
     /// Cannot execute an expired proposal
     #[error("Cannot execute an expired proposal")]
     CannotExecuteAnExpiredProposal, // 635
+
+    /// Proposal has not expired
+    #[error("Proposal has not expired yet")]
+    ProposalHasNotExpired, // 636
 }
 
 impl PrintProgramError for GovernanceError {

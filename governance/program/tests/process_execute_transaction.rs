@@ -12,7 +12,7 @@ use {
     solana_program_test::tokio,
     spl_governance::{
         error::GovernanceError,
-        state::enums::{ProposalState, TransactionExecutionStatus},
+        state::{enums::{ProposalState, TransactionExecutionStatus}, proposal::MAX_LIVE_PROPOSAL_DURATION},
     },
 };
 
@@ -775,5 +775,82 @@ async fn test_execute_transaction_with_create_proposal_and_execute_in_single_slo
     assert_eq!(
         err,
         GovernanceError::CannotExecuteTransactionWithinHoldUpTime.into()
+    );
+}
+
+
+
+#[tokio::test]
+async fn test_execute_proposal_transaction_expired() {
+    // Arrange
+    let mut governance_test = GovernanceProgramTest::start_new().await;
+
+    let realm_cookie = governance_test.with_realm().await;
+
+    let token_owner_record_cookie = governance_test
+        .with_community_token_deposit(&realm_cookie)
+        .await
+        .unwrap();
+
+    let mut governance_cookie = governance_test
+        .with_governance(&realm_cookie, &token_owner_record_cookie)
+        .await
+        .unwrap();
+
+    let governed_mint_cookie = governance_test.with_governed_mint(&governance_cookie).await;
+
+    let mut proposal_cookie = governance_test
+        .with_proposal(&token_owner_record_cookie, &mut governance_cookie)
+        .await
+        .unwrap();
+
+    let signatory_record_cookie = governance_test
+        .with_signatory(
+            &proposal_cookie,
+            &governance_cookie,
+            &token_owner_record_cookie,
+        )
+        .await
+        .unwrap();
+
+    let proposal_transaction_cookie = governance_test
+        .with_mint_tokens_transaction(
+            &governed_mint_cookie,
+            &mut proposal_cookie,
+            &token_owner_record_cookie,
+            0,
+            None,
+        )
+        .await
+        .unwrap();
+
+    governance_test
+        .sign_off_proposal(&proposal_cookie, &signatory_record_cookie)
+        .await
+        .unwrap();
+
+    governance_test
+        .with_cast_yes_no_vote(&proposal_cookie, &token_owner_record_cookie, YesNoVote::Yes)
+        .await
+        .unwrap();
+
+    // Advance clock past hold_up_time
+    governance_test
+        .advance_clock_by_min_timespan(
+            (MAX_LIVE_PROPOSAL_DURATION + 1) as u64
+        )
+        .await;
+
+    // Act
+    let err = governance_test
+        .execute_proposal_transaction(&proposal_cookie, &proposal_transaction_cookie)
+        .await
+        .err()
+        .unwrap();
+
+    // Assert
+    assert_eq!(
+        err,
+        GovernanceError::CannotExecuteAnExpiredProposal.into()
     );
 }

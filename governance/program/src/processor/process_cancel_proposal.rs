@@ -49,6 +49,7 @@ pub fn process_cancel_proposal(program_id: &Pubkey, accounts: &[AccountInfo]) ->
     proposal_owner_record_data.serialize(&mut proposal_owner_record_info.data.borrow_mut()[..])?;
 
     proposal_data.state = ProposalState::Cancelled;
+    // proposal_data.state = ProposalState::Expired;
     proposal_data.closed_at = Some(clock.unix_timestamp);
 
     proposal_data.serialize(&mut proposal_info.data.borrow_mut()[..])?;

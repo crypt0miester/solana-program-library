@@ -21,22 +21,24 @@ use {
         },
         tools::spl_token::get_spl_token_mint_supply,
         PROGRAM_AUTHORITY_SEED,
-    },
-    borsh::{io::Write, BorshDeserialize, BorshSchema, BorshSerialize},
-    solana_program::{
+    }, borsh::{io::Write, BorshDeserialize, BorshSchema, BorshSerialize}, solana_program::{
         account_info::{next_account_info, AccountInfo},
         clock::{Slot, UnixTimestamp},
         program_error::ProgramError,
         program_pack::IsInitialized,
         pubkey::Pubkey,
-    },
-    spl_governance_tools::account::{get_account_data, get_account_type, AccountMaxSize},
-    std::{cmp::Ordering, slice::Iter},
+    }, spl_governance_tools::account::{get_account_data, get_account_type, AccountMaxSize}, std::{cmp::Ordering, slice::Iter}
 };
 
-/// Default maximum proposal duration for all proposals.
+
+/// Default maximum for live proposal duration.
 /// After this amount of time the proposals are to be Expired. 
-pub const MAX_PROPOSAL_DURATION: u32 = 7 * 24 * 60 * 60;
+#[cfg(not(feature = "test-sbf"))]
+pub const MAX_LIVE_PROPOSAL_DURATION: u32 = 7 * 24 * 60 * 60;
+
+/// For testing proposal expiration
+#[cfg(feature = "test-sbf")]
+pub const MAX_LIVE_PROPOSAL_DURATION: u32 = 60;
 
 /// Proposal option vote result
 #[derive(Clone, Debug, PartialEq, Eq, BorshDeserialize, BorshSerialize, BorshSchema)]
@@ -314,11 +316,11 @@ impl ProposalV2 {
             ProposalState::Completed
             | ProposalState::Cancelled
             | ProposalState::Defeated
+            | ProposalState::Expired
             | ProposalState::Vetoed => Ok(()),
             ProposalState::Executing
             | ProposalState::ExecutingWithErrors
             | ProposalState::SigningOff
-            | ProposalState::Expired
             | ProposalState::Voting
             | ProposalState::Draft
             | ProposalState::Succeeded => Err(GovernanceError::InvalidStateNotFinal.into()),
@@ -364,6 +366,7 @@ impl ProposalV2 {
             | ProposalState::Executing
             | ProposalState::Completed
             | ProposalState::Cancelled
+            // Expired proposal deposits can be refunded
             | ProposalState::Expired
             | ProposalState::Defeated
             | ProposalState::ExecutingWithErrors
@@ -412,12 +415,12 @@ impl ProposalV2 {
         self.voting_max_time_end(config) < current_unix_timestamp
     }
 
-    /// Expected max proposal lifetime
+    /// Expected max live (successfully voted) proposal lifetime
     /// config is passed for future customizations.
-    pub fn max_proposal_lifetime(&self, _config: &GovernanceConfig) -> UnixTimestamp {
-        self.voting_at
+    pub fn max_live_proposal_lifetime(&self, _config: &GovernanceConfig) -> UnixTimestamp {
+        self.voting_completed_at
             .unwrap()
-            .checked_add(MAX_PROPOSAL_DURATION as i64)
+            .checked_add(MAX_LIVE_PROPOSAL_DURATION as i64)
             .unwrap()
     }
     
@@ -428,7 +431,7 @@ impl ProposalV2 {
         current_unix_timestamp: UnixTimestamp,
     ) -> bool {
         // Check if we passed the max propsal lifetime
-        self.max_proposal_lifetime(config) < current_unix_timestamp
+        self.max_live_proposal_lifetime(config) < current_unix_timestamp
     }
 
 
@@ -445,11 +448,6 @@ impl ProposalV2 {
         // expired and vote time ended
         if !self.has_voting_max_time_ended(config, current_unix_timestamp) {
             return Err(GovernanceError::CannotFinalizeVotingInProgress.into());
-        }
-
-        // We can only finalize the vote in the proposal lifetime duration 
-        if self.has_proposal_expired(config, current_unix_timestamp) {
-            return Err(GovernanceError::CannotFinalizePropsalExpired.into());
         }
 
         Ok(())
@@ -848,6 +846,38 @@ impl ProposalV2 {
             | ProposalState::Defeated
             | ProposalState::Vetoed => {
                 Err(GovernanceError::InvalidStateCannotCancelProposal.into())
+            }
+        }
+    }
+
+    /// Checks if Proposal can be expired in the given state
+    pub fn assert_can_expire(
+        &self,
+        config: &GovernanceConfig,
+        current_unix_timestamp: UnixTimestamp,
+    ) -> Result<(), ProgramError> {
+        match self.state {
+            ProposalState::Succeeded 
+            | ProposalState::Executing
+            | ProposalState::ExecutingWithErrors => {
+                // if proposal has not expired then we cannot expire
+                if !self.has_proposal_expired(config, current_unix_timestamp) {
+                    return Err(GovernanceError::ProposalHasNotExpired.into());
+                }
+                Ok(())
+            },
+            ProposalState::Expired => {
+                Err(GovernanceError::ProposalExpired.into())
+            }
+            ProposalState::Voting
+            | ProposalState::Cancelled
+            | ProposalState::Draft
+            | ProposalState::Completed
+            | ProposalState::SigningOff
+            | ProposalState::Defeated
+            | ProposalState::Vetoed => {
+                // cannot expire in the following states
+                Err(GovernanceError::ProposalHasNotExpired.into())
             }
         }
     }
