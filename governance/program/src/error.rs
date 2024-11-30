@@ -548,6 +548,10 @@ pub enum GovernanceError {
     /// TokenOwnerRecordLockAuthority not found
     #[error("TokenOwnerRecordLockAuthority not found")]
     TokenOwnerRecordLockAuthorityNotFound, // 631
+    
+    /// Cannot Relinquish Deny Vote, during cool off period
+    #[error("Cannot Relinquish Deny Vote, during cool off period")]
+    CannotRelinquishDenyVoteDuringCoolOffPeriod, // 632
 }
 
 impl PrintProgramError for GovernanceError {

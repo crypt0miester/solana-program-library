@@ -93,6 +93,11 @@ pub fn process_relinquish_vote(program_id: &Pubkey, accounts: &[AccountInfo]) ->
                 }
             }
             Vote::Deny => {
+                // Prevent withdrawal in voting_cool_off_time period
+                // We are already certain that voting time has not ended
+                if clock.unix_timestamp > proposal_data.voting_max_time_end(&governance_data.config) {
+                    return Err(GovernanceError::CannotRelinquishDenyVoteDuringCoolOffPeriod.into());
+                }
                 proposal_data.deny_vote_weight = Some(
                     proposal_data
                         .deny_vote_weight
