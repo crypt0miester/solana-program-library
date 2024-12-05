@@ -102,6 +102,15 @@ pub enum GovernanceAccountType {
 
     /// Required signatory account
     RequiredSignatory,
+
+    /// ProposalVersionedTransaction account which holds instructions to execute for
+    /// Proposal within a single Versioned Transaction
+    /// and adds index for proposal option and multiple instructions
+    ProposalVersionedTransaction,
+
+    /// ProposalTransactionBuffer account which holds instruction buffer which would then create
+    /// a ProposalVersionedTransaction. 
+    ProposalTransactionBuffer
 }
 
 /// What state a Proposal is in
@@ -205,9 +214,10 @@ pub enum VoteTipping {
 }
 
 /// The status of instruction execution
-#[derive(Clone, Debug, PartialEq, Eq, BorshDeserialize, BorshSerialize, BorshSchema)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub enum TransactionExecutionStatus {
     /// Transaction was not executed yet
+    #[default]
     None,
 
     /// Transaction was executed successfully
@@ -220,11 +230,12 @@ pub enum TransactionExecutionStatus {
 
 /// Transaction execution flags defining how instructions are executed for a
 /// Proposal
-#[derive(Clone, Debug, PartialEq, Eq, BorshDeserialize, BorshSerialize, BorshSchema)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub enum InstructionExecutionFlags {
     /// No execution flags are specified
     /// Instructions can be executed individually, in any order, as soon as they
     /// hold_up time expires
+    #[default]
     None,
 
     /// Instructions are executed in a specific order

@@ -14,3 +14,5 @@ pub mod required_signatory;
 pub mod signatory_record;
 pub mod token_owner_record;
 pub mod vote_record;
+pub mod proposal_versioned_transaction;
+pub mod proposal_transaction_buffer;

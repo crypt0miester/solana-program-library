@@ -548,6 +548,62 @@ pub enum GovernanceError {
     /// TokenOwnerRecordLockAuthority not found
     #[error("TokenOwnerRecordLockAuthority not found")]
     TokenOwnerRecordLockAuthorityNotFound, // 631
+
+    /// Final buffer exceeded 10128 bytes
+    #[error("Final buffer exceeded 10128 bytes")]
+    FinalBufferSizeExceeded, // 632
+
+    /// Final message buffer hash doesnt match the expected hash
+    #[error("Final message buffer hash doesnt match the expected hash")]
+    FinalBufferHashMismatch, // 633
+
+    /// Final buffer size mismatch
+    #[error("Final buffer size mismatch")]
+    FinalBufferSizeMismatch, // 634
+
+    /// Invalid number of accounts in the address look up table account
+    #[error("Invalid number of accounts in the address look up table account")]
+    InvalidNumberOfAccounts, // 635
+
+    /// Invalid lookup table account owner
+    #[error("Invalid lookup table account owner")]
+    InvalidLookupTableAccountOwner, // 636
+
+    /// Invalid lookup table accounts key
+    #[error("Invalid lookup table account key")]
+    InvalidLookupTableAccountKey, // 637
+
+    /// Invalid number of accounts in message
+    #[error("Invalid number of accounts in message")]
+    InvalidNumberOfAccountsInMessage, // 638
+
+    /// Invalid account found in message
+    #[error("Invalid account found in message")]
+    InvalidAccountFoundInMessage, // 639
+
+    /// Invalid account signer found in message
+    #[error("Invalid account signer found in message")]
+    InvalidAccountSigner, // 640
+    
+    /// Invalid writeable account found in message
+    #[error("Invalid writeable account found in message")]
+    InvalidAccountWriteable, // 641
+
+    /// Invalid account found in message
+    #[error("Invalid writeable account found in message")]
+    InvalidAccountFound, // 642
+
+    /// Account in lookuptable is missing
+    #[error("Account in lookuptable is missing")]
+    MissingAddressInLookuptable, // 643
+
+    /// Account is protected, it cannot be passed into a CPI as writable
+    #[error("Account is protected, it cannot be passed into a CPI as writable")]
+    ProtectedAccount, // 644
+
+    /// TransactionMessage is malformed
+    #[error("TransactionMessage is malformed")]
+    InvalidTransactionMessage, // 645
 }
 
 impl PrintProgramError for GovernanceError {

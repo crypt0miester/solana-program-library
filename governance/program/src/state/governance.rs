@@ -155,6 +155,8 @@ pub fn is_governance_v2_account_type(account_type: &GovernanceAccountType) -> bo
         | GovernanceAccountType::SignatoryRecordV2
         | GovernanceAccountType::ProposalInstructionV1
         | GovernanceAccountType::ProposalTransactionV2
+        | GovernanceAccountType::ProposalVersionedTransaction
+        | GovernanceAccountType::ProposalTransactionBuffer
         | GovernanceAccountType::VoteRecordV1
         | GovernanceAccountType::VoteRecordV2
         | GovernanceAccountType::ProgramMetadata
@@ -191,6 +193,8 @@ pub fn try_get_governance_v2_type_for_v1(
         | GovernanceAccountType::SignatoryRecordV2
         | GovernanceAccountType::ProposalInstructionV1
         | GovernanceAccountType::ProposalTransactionV2
+        | GovernanceAccountType::ProposalVersionedTransaction
+        | GovernanceAccountType::ProposalTransactionBuffer
         | GovernanceAccountType::VoteRecordV1
         | GovernanceAccountType::VoteRecordV2
         | GovernanceAccountType::ProgramMetadata
@@ -238,6 +242,8 @@ impl GovernanceV2 {
             | GovernanceAccountType::RealmConfig
             | GovernanceAccountType::VoteRecordV2
             | GovernanceAccountType::ProposalTransactionV2
+            | GovernanceAccountType::ProposalVersionedTransaction
+            | GovernanceAccountType::ProposalTransactionBuffer
             | GovernanceAccountType::ProposalV2
             | GovernanceAccountType::ProgramMetadata
             | GovernanceAccountType::ProposalDeposit
