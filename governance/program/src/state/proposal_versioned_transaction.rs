@@ -11,12 +11,8 @@ use {
     },
     borsh::{io::Write, BorshDeserialize, BorshSchema, BorshSerialize},
     solana_program::{
-        account_info::AccountInfo,
-        borsh1::get_instance_packed_len,
-        clock::UnixTimestamp,
-        program_error::ProgramError,
-        program_pack::IsInitialized,
-        pubkey::Pubkey,
+        account_info::AccountInfo, borsh1::get_instance_packed_len, clock::UnixTimestamp,
+        program_error::ProgramError, program_pack::IsInitialized, pubkey::Pubkey,
     },
     spl_governance_tools::account::{get_account_data, AccountMaxSize},
 };
@@ -68,18 +64,15 @@ pub struct ProposalVersionedTransaction {
     /// during execution the program includes the seeds of these PDAs into the `invoke_signed` calls,
     /// thus "signing" on behalf of these PDAs.
     pub ephemeral_signer_bumps: Vec<u8>,
-    
+
     /// data required for executing the transaction.
     pub message: ProposalTransactionMessage,
 }
 
 impl AccountMaxSize for ProposalVersionedTransaction {
     /// proposal versioned_transaction can only be created from proposal_transaction_message
-    fn get_max_size(
-        &self,
-    ) -> Option<usize> {
+    fn get_max_size(&self) -> Option<usize> {
         let message_size = get_instance_packed_len(&self.message).unwrap_or_default();
-
 
         Some(
             1 +   // account_type
@@ -91,7 +84,7 @@ impl AccountMaxSize for ProposalVersionedTransaction {
             1 +   // execution_status
             4 + self.ephemeral_signer_bumps.len() +
             message_size +
-            40    // additional overhead
+            40, // additional overhead
         )
     }
 }
@@ -143,7 +136,7 @@ impl ProposalTransactionMessage {
         self.account_keys.len() + num_account_keys_from_lookups
     }
 
-    /// Returns true if the account at the specified index is a part of static `account_keys` 
+    /// Returns true if the account at the specified index is a part of static `account_keys`
     /// and was requested to be writable.
     pub fn is_static_writable_index(&self, key_index: usize) -> bool {
         let num_account_keys = self.account_keys.len();
