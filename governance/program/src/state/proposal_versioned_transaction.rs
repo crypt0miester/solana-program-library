@@ -18,8 +18,23 @@ use {
         program_pack::IsInitialized,
         pubkey::Pubkey,
     },
-    spl_governance_tools::account::get_account_data,
+    spl_governance_tools::account::{get_account_data, AccountMaxSize},
 };
+
+impl IsInitialized for ProposalVersionedTransaction {
+    fn is_initialized(&self) -> bool {
+        self.account_type == GovernanceAccountType::ProposalVersionedTransaction
+    }
+}
+
+impl ProposalVersionedTransaction {
+    /// Serializes account into the target buffer
+    pub fn serialize<W: Write>(self, writer: W) -> Result<(), ProgramError> {
+        borsh::to_writer(writer, &self)?;
+
+        Ok(())
+    }
+}
 
 /// Account for an instruction to be executed for Proposal
 #[derive(Clone, Default, BorshDeserialize, BorshSerialize, BorshSchema)]
@@ -58,43 +73,30 @@ pub struct ProposalVersionedTransaction {
     pub message: ProposalTransactionMessage,
 }
 
-impl IsInitialized for ProposalVersionedTransaction {
-    fn is_initialized(&self) -> bool {
-        self.account_type == GovernanceAccountType::ProposalVersionedTransaction
-    }
-}
+impl AccountMaxSize for ProposalVersionedTransaction {
+    /// proposal versioned_transaction can only be created from proposal_transaction_message
+    fn get_max_size(
+        &self,
+    ) -> Option<usize> {
+        let message_size = get_instance_packed_len(&self.message).unwrap_or_default();
 
-impl ProposalVersionedTransaction {
-    /// Serializes account into the target buffer
-    pub fn serialize<W: Write>(self, writer: W) -> Result<(), ProgramError> {
-        borsh::to_writer(writer, &self)?;
 
-        Ok(())
-    }
-}
-
-impl ProposalVersionedTransaction {
-    /// Returns VaultTransaction size
-    pub fn size(
-        ephemeral_signers_length: u8,
-        transaction_message: &[u8],
-    ) -> Result<usize, ProgramError> {
-        let transaction_message =
-            ProposalTransactionMessage::deserialize(&mut &transaction_message[..])?;
-        let message_size = get_instance_packed_len(&transaction_message).unwrap_or_default();
-
-        Ok(
-            8 +   // anchor account discriminator
-            32 +  // multisig
-            32 +  // creator
-            8 +   // index
-            1 +   // bump
-            1 +   // vault_index
-            1 +   // vault_bump
-            (4 + usize::from(ephemeral_signers_length)) +   // ephemeral_signers_bumps vec
-            message_size, // message
+        Some(
+            1 +   // account_type
+            32 +  // proposal
+            1 +   // option_index
+            2 +   // transaction_index
+            1 +   // execution_index
+            9 +   // executed_at (Option<UnixTimestamp>)
+            1 +   // execution_status
+            4 + self.ephemeral_signer_bumps.len() +
+            message_size +
+            40    // additional overhead
         )
     }
+}
+
+impl ProposalVersionedTransaction {
     /// Reduces the VaultTransaction to its default empty value and moves
     /// ownership of the data to the caller/return value.
     pub fn take(&mut self) -> ProposalVersionedTransaction {
@@ -141,7 +143,8 @@ impl ProposalTransactionMessage {
         self.account_keys.len() + num_account_keys_from_lookups
     }
 
-    /// Returns true if the account at the specified index is a part of static `account_keys` and was requested to be writable.
+    /// Returns true if the account at the specified index is a part of static `account_keys` 
+    /// and was requested to be writable.
     pub fn is_static_writable_index(&self, key_index: usize) -> bool {
         let num_account_keys = self.account_keys.len();
         let num_signers = usize::from(self.num_signers);

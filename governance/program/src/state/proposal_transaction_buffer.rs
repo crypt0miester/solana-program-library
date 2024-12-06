@@ -35,8 +35,8 @@ impl ProposalTransactionBuffer {
             return Err(GovernanceError::FinalBufferSizeExceeded.into());
         }
         Ok(
-            8 +   // anchor account discriminator
-            32 +  // multisig
+            1 +   // anchor account discriminator
+            32 +  // proposal
             32 +  // creator
             1 +   // buffer_index
             32 +  // transaction_message_hash
