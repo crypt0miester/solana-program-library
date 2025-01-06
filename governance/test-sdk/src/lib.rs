@@ -20,10 +20,11 @@ use {
     std::borrow::Borrow,
     tools::clone_keypair,
 };
-
+pub mod versioned_transaction;
 pub mod addins;
 pub mod cookies;
 pub mod tools;
+pub mod mpl_core_tools;
 
 /// Program's test bench which captures test context, rent and payer and common
 /// utility functions

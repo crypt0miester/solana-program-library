@@ -23,3 +23,4 @@ spl-token = { version = "7.0", path = "../../token/program", features = [
   "no-entrypoint",
 ] }
 thiserror = "2.0"
+mpl-core = "0.8.1-beta.1"
