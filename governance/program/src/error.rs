@@ -604,6 +604,22 @@ pub enum GovernanceError {
     /// TransactionMessage is malformed
     #[error("TransactionMessage is malformed")]
     InvalidTransactionMessage, // 645
+
+    /// Transaction buffer already created
+    #[error("Transaction buffer already created")]
+    TransactionBufferAlreadyExists, // 646
+
+    /// Versioned Transaction already created
+    #[error("Versioned Transaction already created")]
+    VersionedTransactionAlreadyExists, // 647
+
+    /// Transaction buffer unauthorized extension
+    #[error("Transaction buffer unauthorized extension")]
+    TransactionBufferUnauthorizedExtension, // 648
+
+    /// Versioned Transaction already removed
+    #[error("Versioned Transaction already removed")]
+    VersionedTransactionAlreadyRemoved, // 649
 }
 
 impl PrintProgramError for GovernanceError {

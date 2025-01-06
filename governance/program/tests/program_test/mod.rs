@@ -1,7 +1,27 @@
 #![allow(clippy::arithmetic_side_effects)]
 
+use cookies::{ProposalTransactionBufferCookie, ProposalVersionedTransactionCookie};
+use solana_sdk::{
+    address_lookup_table::AddressLookupTableAccount, compute_budget::ComputeBudgetInstruction,
+};
+use spl_governance::{
+    instruction::{
+        close_transaction_buffer, create_transaction_buffer, execute_versioned_transaction,
+        extend_transaction_buffer, insert_versioned_transaction,
+        insert_versioned_transaction_from_buffer,
+    },
+    state::{
+        proposal_transaction_buffer::get_proposal_transaction_buffer_address,
+        proposal_versioned_transaction::{
+            get_proposal_versioned_transaction_address, ProposalVersionedTransaction,
+        },
+    },
+    tools::transaction_message::TransactionMessage,
+};
+
 use {
     self::cookies::TokenOwnerRecordLockAuthorityCookie,
+    crate::program_test::versioned_transaction_ext::VaultTransactionMessageExt,
     borsh::BorshSerialize,
     solana_program::{
         bpf_loader_upgradeable::{self, UpgradeableLoaderState},
@@ -77,6 +97,7 @@ use {
 pub mod args;
 pub mod cookies;
 pub mod legacy;
+pub mod versioned_transaction_ext;
 
 use {
     crate::{
@@ -165,6 +186,12 @@ impl GovernanceProgramTest {
             "spl_governance",
             program_id,
             processor!(process_instruction),
+        );
+
+        program_test.add_program(
+            "mpl_core",
+            spl_governance_test_sdk::mpl_core_tools::program_id(),
+            None,
         );
 
         let voter_weight_addin_id = if use_voter_weight_addin {
@@ -2804,6 +2831,18 @@ impl GovernanceProgramTest {
     }
 
     #[allow(dead_code)]
+    pub async fn get_proposal_versioned_transaction_account(
+        &mut self,
+        proposal_versioned_transaction_address: &Pubkey,
+    ) -> ProposalVersionedTransaction {
+        self.bench
+            .get_borsh_account::<ProposalVersionedTransaction>(
+                proposal_versioned_transaction_address,
+            )
+            .await
+    }
+
+    #[allow(dead_code)]
     pub async fn get_required_signatory_account(
         &mut self,
         required_signatory_address: &Pubkey,
@@ -3240,5 +3279,273 @@ impl GovernanceProgramTest {
         Ok(TokenOwnerRecordLockAuthorityCookie {
             authority: token_owner_record_lock_authority,
         })
+    }
+
+    #[allow(dead_code)]
+    pub async fn with_create_transaction_buffer(
+        &mut self,
+        proposal_cookie: &mut ProposalCookie,
+        token_owner_record_cookie: &TokenOwnerRecordCookie,
+        buffer_index: u8,
+        final_buffer_hash: [u8; 32],
+        final_buffer_size: u16,
+        buffer: Vec<u8>,
+    ) -> Result<ProposalTransactionBufferCookie, ProgramError> {
+        let create_buffer_ix = create_transaction_buffer(
+            &self.program_id,
+            &proposal_cookie.account.governance,
+            &proposal_cookie.address,
+            &token_owner_record_cookie.address,
+            &token_owner_record_cookie.token_owner.pubkey(),
+            &self.bench.payer.pubkey(),
+            buffer_index,
+            final_buffer_hash,
+            final_buffer_size,
+            buffer.clone(),
+        );
+
+        self.bench
+            .process_transaction(
+                &[create_buffer_ix],
+                Some(&[&token_owner_record_cookie.token_owner]),
+            )
+            .await?;
+
+        let buffer_address = get_proposal_transaction_buffer_address(
+            &self.program_id,
+            &proposal_cookie.address,
+            &self.bench.payer.pubkey(),
+            &buffer_index.to_le_bytes(),
+        );
+
+        let buffer_cookie = ProposalTransactionBufferCookie {
+            address: buffer_address,
+            buffer_index,
+            buffer,
+        };
+
+        Ok(buffer_cookie)
+    }
+
+    #[allow(dead_code)]
+    pub async fn with_extend_transaction_buffer(
+        &mut self,
+        proposal_cookie: &ProposalCookie,
+        governance: &GovernanceCookie,
+        buffer_index: u8,
+        buffer: Vec<u8>,
+    ) -> Result<(), ProgramError> {
+        let extend_buffer_ix = extend_transaction_buffer(
+            &self.program_id,
+            &governance.address,
+            &proposal_cookie.address,
+            &self.bench.payer.pubkey(),
+            buffer_index,
+            buffer,
+        );
+
+        self.bench
+            .process_transaction(&[extend_buffer_ix], None)
+            .await?;
+
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    pub async fn with_close_transaction_buffer(
+        &mut self,
+        governance: &GovernanceCookie,
+        proposal_cookie: &ProposalCookie,
+        token_owner_record_cookie: &TokenOwnerRecordCookie,
+        buffer_index: u8,
+    ) -> Result<(), ProgramError> {
+        let close_buffer_ix = close_transaction_buffer(
+            &self.program_id,
+            &governance.address,
+            &proposal_cookie.address,
+            &token_owner_record_cookie.token_owner.pubkey(),
+            &token_owner_record_cookie.address,
+            &self.bench.payer.pubkey(),
+            buffer_index,
+        );
+
+        self.bench
+            .process_transaction(
+                &[close_buffer_ix],
+                Some(&[&token_owner_record_cookie.token_owner]),
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    pub async fn with_insert_versioned_transaction_from_buffer(
+        &mut self,
+        proposal_cookie: &mut ProposalCookie,
+        token_owner_record_cookie: &TokenOwnerRecordCookie,
+        option_index: u8,
+        ephemeral_signers: u8,
+        transaction_index: Option<u16>,
+        buffer_index: u8,
+    ) -> Result<ProposalVersionedTransactionCookie, ProgramError> {
+        let yes_option = &mut proposal_cookie.account.options[0];
+        let tx_index = transaction_index.unwrap_or(yes_option.transactions_next_index);
+        yes_option.transactions_next_index += 1;
+
+        let insert_tx_ix = insert_versioned_transaction_from_buffer(
+            &self.program_id,
+            &proposal_cookie.account.governance,
+            &proposal_cookie.address,
+            &token_owner_record_cookie.address,
+            &token_owner_record_cookie.token_owner.pubkey(),
+            &self.bench.payer.pubkey(),
+            option_index,
+            ephemeral_signers,
+            tx_index,
+            buffer_index,
+        );
+        let compute_heap_ix = ComputeBudgetInstruction::request_heap_frame(8 * 32 * 1024);
+        let compute_unit_ix = ComputeBudgetInstruction::set_compute_unit_limit(1_400_000);
+
+        self.bench
+            .process_transaction(
+                &[compute_heap_ix, compute_unit_ix, insert_tx_ix],
+                Some(&[&token_owner_record_cookie.token_owner]),
+            )
+            .await?;
+
+        let versioned_tx_address = get_proposal_versioned_transaction_address(
+            &self.program_id,
+            &proposal_cookie.address,
+            &option_index.to_le_bytes(),
+            &tx_index.to_le_bytes(),
+        );
+
+        let versioned_tx_cookie = ProposalVersionedTransactionCookie {
+            address: versioned_tx_address,
+            option_index,
+            transaction_index: tx_index,
+        };
+
+        Ok(versioned_tx_cookie)
+    }
+
+    #[allow(dead_code)]
+    pub async fn with_insert_versioned_transaction(
+        &mut self,
+        proposal_cookie: &mut ProposalCookie,
+        token_owner_record_cookie: &TokenOwnerRecordCookie,
+        option_index: u8,
+        ephemeral_signers: u8,
+        transaction_index: Option<u16>,
+        transaction_message: Vec<u8>,
+    ) -> Result<ProposalVersionedTransactionCookie, ProgramError> {
+        let yes_option = &mut proposal_cookie.account.options[0];
+        let tx_index = transaction_index.unwrap_or(yes_option.transactions_next_index);
+        yes_option.transactions_next_index += 1;
+
+        let insert_tx_ix = insert_versioned_transaction(
+            &self.program_id,
+            &proposal_cookie.account.governance,
+            &proposal_cookie.address,
+            &token_owner_record_cookie.address,
+            &token_owner_record_cookie.token_owner.pubkey(),
+            &self.bench.payer.pubkey(),
+            option_index,
+            ephemeral_signers,
+            tx_index,
+            transaction_message,
+        );
+
+        self.bench
+            .process_transaction(
+                &[insert_tx_ix],
+                Some(&[&token_owner_record_cookie.token_owner]),
+            )
+            .await?;
+
+        let versioned_tx_address = get_proposal_versioned_transaction_address(
+            &self.program_id,
+            &proposal_cookie.address,
+            &option_index.to_le_bytes(),
+            &tx_index.to_le_bytes(),
+        );
+
+        let versioned_tx_cookie = ProposalVersionedTransactionCookie {
+            address: versioned_tx_address,
+            option_index,
+            transaction_index: tx_index,
+        };
+
+        Ok(versioned_tx_cookie)
+    }
+
+    #[allow(dead_code)]
+    pub async fn with_execute_versioned_transaction(
+        &mut self,
+        proposal_cookie: &ProposalCookie,
+        versioned_transaction_cookie: &ProposalVersionedTransactionCookie,
+        proposal_transaction_message: TransactionMessage,
+        ephemeral_signers: u8,
+        transaction_index: u16,
+        native_treasury_pubkey: &Pubkey,
+        governance_pubkey: &Pubkey,
+        address_lookup_table_accounts: &[AddressLookupTableAccount],
+    ) -> Result<(), ProgramError> {
+        let mut execute_tx_ix = execute_versioned_transaction(
+            &self.program_id,
+            &proposal_cookie.account.governance,
+            &proposal_cookie.address,
+            &versioned_transaction_cookie.address,
+        );
+
+        let accounts_for_execute = proposal_transaction_message
+            .get_accounts_for_execute(
+                native_treasury_pubkey,
+                governance_pubkey,
+                &versioned_transaction_cookie.address,
+                &transaction_index,
+                &address_lookup_table_accounts,
+                ephemeral_signers,
+                &self.program_id,
+            )
+            .unwrap();
+
+        execute_tx_ix
+            .accounts
+            .extend(accounts_for_execute.into_iter());
+
+        let compute_heap_ix = ComputeBudgetInstruction::request_heap_frame(8 * 32 * 1024);
+        let compute_unit_ix = ComputeBudgetInstruction::set_compute_unit_limit(1_400_000);
+        self.bench
+            .process_transaction(&[compute_heap_ix, compute_unit_ix, execute_tx_ix], None)
+            .await?;
+
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    pub async fn process_buffer_in_chunks(
+        &mut self,
+        proposal_cookie: &mut ProposalCookie,
+        governance: &GovernanceCookie,
+        buffer: Vec<u8>,
+        chunk_size: usize,
+        buffer_index: u8,
+    ) -> Result<(), ProgramError> {
+        let mut start_index = 0;
+
+        while start_index < buffer.len() {
+            let end_index = std::cmp::min(start_index + chunk_size, buffer.len());
+            let chunk = buffer[start_index..end_index].to_vec();
+
+            self.with_extend_transaction_buffer(proposal_cookie, governance, buffer_index, chunk)
+                .await?;
+
+            start_index = end_index;
+        }
+
+        Ok(())
     }
 }

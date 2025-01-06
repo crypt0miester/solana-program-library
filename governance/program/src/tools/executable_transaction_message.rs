@@ -15,7 +15,7 @@ use solana_program::{
     {account_info::AccountInfo, pubkey::Pubkey},
 };
 
-/// Sanitized and validated combination of a `MsTransactionMessage` and `AccountInfo`s it references.
+/// Sanitized and validated combination of a `ProposalTransactionMessage` and `AccountInfo`s it references.
 pub struct ExecutableTransactionMessage<'a, 'info> {
     /// Message which loaded a collection of lookup table addresses.
     message: ProposalTransactionMessage,
@@ -29,7 +29,7 @@ pub struct ExecutableTransactionMessage<'a, 'info> {
 
 impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
     /// # Arguments
-    /// `message` - a `MsTransactionMessage`.
+    /// `message` - a `ProposalTransactionMessage`.
     /// `message_account_infos` - AccountInfo's that are expected to be mentioned in the message.
     /// `address_lookup_table_account_infos` - AccountInfo's that are expected to correspond to the lookup tables mentioned in `message.address_table_lookups`.
     /// `vault_pubkey` - The vault PDA that is expected to sign the message.
@@ -37,7 +37,8 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
         message: ProposalTransactionMessage,
         message_account_infos: &'a [AccountInfo<'info>],
         address_lookup_table_account_infos: &'a [AccountInfo<'info>],
-        vault_pubkey: &'a Pubkey,
+        native_treasury_pubkey: &'a Pubkey,
+        governance_pubkey: &'a Pubkey,
         ephemeral_signer_pdas: &'a [Pubkey],
     ) -> Result<Self, ProgramError> {
         // CHECK: `address_lookup_table_account_infos` must be valid `AddressLookupTable`s
@@ -84,16 +85,17 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
             // Unless it's a vault or an ephemeral signer PDA, as they cannot be passed as signers to `remaining_accounts`,
             // because they are PDA's and can't sign the transaction.
             if message.is_signer_index(i)
-                && account_info.key != vault_pubkey
+                && account_info.key != native_treasury_pubkey
+                && account_info.key != governance_pubkey
                 && !ephemeral_signer_pdas.contains(account_info.key)
             {
-                if account_info.is_signer{
+                if !account_info.is_signer {
                     return Err(GovernanceError::InvalidAccountSigner.into());
                 }
             }
             // If the account is marked as writable in the message, it must be writable in the account infos too.
             if message.is_static_writable_index(i) {
-                if account_info.is_writable{
+                if !account_info.is_writable {
                     return Err(GovernanceError::InvalidAccountWriteable.into());
                 }
             }
@@ -160,7 +162,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                     .ok_or(GovernanceError::MissingAddressInLookuptable)?;
                 
                 if loaded_account_info.key.eq(pubkey_from_lookup_table) {
-                    msg!("Loaded account should does not match pubkey from lookup table");
+                    msg!("Loaded account should not match pubkey from lookup table");
                     return Err(GovernanceError::InvalidAccountFound.into());
                 }
 
@@ -179,12 +181,13 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
 
     /// Executes all instructions in the message via CPI calls.
     /// # Arguments
-    /// * `vault_seeds` - Seeds for the vault PDA.
+    /// * `governance_signer_seeds` - Seeds for the governance signer PDA.
     /// * `ephemeral_signer_seeds` - Seeds for the ephemeral signer PDAs.
     /// * `protected_accounts` - Accounts that must not be passed as writable to the CPI calls to prevent potential reentrancy attacks.
     pub fn execute_message(
         self,
-        vault_seeds: &[&[u8]],
+        governance_signer_seeds: &[&[u8]],
+        treasury_seeds: &[&[u8]],
         ephemeral_signer_seeds: &[Vec<Vec<u8>>],
         protected_accounts: &[Pubkey],
     ) -> Result<(), ProgramError> {
@@ -198,8 +201,11 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
             .iter()
             .map(Vec::as_slice)
             .collect::<Vec<&[&[u8]]>>();
-        // Add the vault seeds.
-        signer_seeds.push(&vault_seeds);
+
+        // Add the governance_signer seeds.
+        signer_seeds.push(&governance_signer_seeds);
+        // Add the treasury seeds.
+        signer_seeds.push(&treasury_seeds);
 
         // NOTE: `self.to_instructions_and_accounts()` calls `take()` on
         // `self.message.instructions`, therefore after this point no more
@@ -260,8 +266,8 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
     pub fn to_instructions_and_accounts(mut self) -> Vec<(Instruction, Vec<AccountInfo<'info>>)> {
         let mut executable_instructions = vec![];
 
-        for ms_compiled_instruction in core::mem::take(&mut self.message.instructions) {
-            let ix_accounts: Vec<(AccountInfo<'info>, AccountMeta)> = ms_compiled_instruction
+        for gov_compiled_instruction in core::mem::take(&mut self.message.instructions) {
+            let ix_accounts: Vec<(AccountInfo<'info>, AccountMeta)> = gov_compiled_instruction
                 .account_indexes
                 .iter()
                 .map(|account_index| {
@@ -283,7 +289,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                 .collect();
 
             let ix_program_account_info = self
-                .get_account_by_index(usize::from(ms_compiled_instruction.program_id_index))
+                .get_account_by_index(usize::from(gov_compiled_instruction.program_id_index))
                 .unwrap();
 
             let ix = Instruction {
@@ -292,7 +298,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                     .iter()
                     .map(|(_, account_meta)| account_meta.clone())
                     .collect(),
-                data: ms_compiled_instruction.data,
+                data: gov_compiled_instruction.data,
             };
 
             let mut account_infos: Vec<AccountInfo> = ix_accounts

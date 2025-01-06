@@ -1,12 +1,16 @@
 //! General purpose ephermal_signers utility functions
 
 use solana_program::pubkey::Pubkey;
+use crate::state::proposal_versioned_transaction::VERSIONED_TRANSACTION_BUFFER_SEED;
+
+/// Seed prefix for EphermalSigners PDAs
+pub const EPHERMAL_SIGNER_SEED: &[u8] = b"ephemeral_signer";
 
 /// Return a tuple of ephemeral_signer_keys and ephemeral_signer_seeds derived
 /// from the given `ephemeral_signer_bumps` and `transaction_proposal`.
 pub fn derive_ephemeral_signers(
-    transaction_proposal: &Pubkey,
     program_id: &Pubkey,
+    transaction_proposal: &Pubkey,
     ephemeral_signer_bumps: &[u8],
     transaction_index: u16,
 ) -> (Vec<Pubkey>, Vec<Vec<Vec<u8>>>) {
@@ -15,10 +19,13 @@ pub fn derive_ephemeral_signers(
         .enumerate()
         .map(|(index, bump)| {
             let seeds = vec![
-                b"governance".to_vec(),
+                VERSIONED_TRANSACTION_BUFFER_SEED.to_vec(),
                 transaction_proposal.to_bytes().to_vec(),
-                b"ephemeral_signer".to_vec(),
-                u16::try_from(transaction_index).unwrap().to_le_bytes().to_vec(),
+                EPHERMAL_SIGNER_SEED.to_vec(),
+                u16::try_from(transaction_index)
+                    .unwrap()
+                    .to_le_bytes()
+                    .to_vec(),
                 u8::try_from(index).unwrap().to_le_bytes().to_vec(),
                 vec![*bump],
             ];

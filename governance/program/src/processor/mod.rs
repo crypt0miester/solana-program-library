@@ -10,6 +10,7 @@ mod process_create_native_treasury;
 
 mod process_create_proposal;
 mod process_create_realm;
+mod proposal_versioned_transactions;
 
 mod process_create_token_owner_record;
 mod process_deposit_governing_tokens;
@@ -64,6 +65,7 @@ use {
     process_sign_off_proposal::*,
     process_update_program_metadata::*,
     process_withdraw_governing_tokens::*,
+    proposal_versioned_transactions::*,
     solana_program::{
         account_info::AccountInfo, borsh1::try_from_slice_unchecked, entrypoint::ProgramResult,
         msg, program_error::ProgramError, pubkey::Pubkey,
@@ -77,26 +79,54 @@ pub fn process_instruction(
     input: &[u8],
 ) -> ProgramResult {
     msg!("VERSION:{:?}", env!("CARGO_PKG_VERSION"));
+
     // Use try_from_slice_unchecked to support forward compatibility of newer UI
     // with older program
     let instruction: GovernanceInstruction =
         try_from_slice_unchecked(input).map_err(|_| ProgramError::InvalidInstructionData)?;
 
-    if let GovernanceInstruction::InsertTransaction {
-        option_index,
-        index,
-        legacy: _,
-        instructions: _,
-    } = instruction
-    {
-        // Do not dump instruction data into logs
-        msg!(
-            "GOVERNANCE-INSTRUCTION: InsertInstruction {{option_index: {:?}, index: {:?}}}",
+    match instruction {
+        GovernanceInstruction::InsertTransaction {
             option_index,
             index,
-        );
-    } else {
-        msg!("GOVERNANCE-INSTRUCTION: {:?}", instruction);
+            ..
+        } => {
+            // Do not dump instruction data into logs
+            msg!(
+                "GOVERNANCE-INSTRUCTION: InsertInstruction {{ option_index: {:?}, index: {:?} }}",
+                option_index,
+                index,
+            );
+        }
+        GovernanceInstruction::CreateTransactionBuffer { buffer_index, .. } => {
+            // Do not dump instruction data into logs
+            msg!(
+                "GOVERNANCE-INSTRUCTION: CreateTransactionBuffer {{ buffer_index: {:?} }}",
+                buffer_index,
+            );
+        }
+        GovernanceInstruction::ExtendTransactionBuffer { buffer_index, .. } => {
+            // Do not dump instruction data into logs
+            msg!(
+                "GOVERNANCE-INSTRUCTION: ExtendTransactionBuffer {{ buffer_index: {:?} }}",
+                buffer_index,
+            );
+        }
+        GovernanceInstruction::InsertVersionedTransaction {
+            option_index,
+            transaction_index,
+            ..
+        } => {
+            // Do not dump instruction data into logs
+            msg!(
+                "GOVERNANCE-INSTRUCTION: InsertVersionedTransaction {{ option_index: {:?}, transaction_index: {:?} }}",
+                option_index,
+                transaction_index
+            );
+        }
+        _ => {
+            msg!("GOVERNANCE-INSTRUCTION: {:?}", instruction);
+        }
     }
 
     match instruction {
@@ -221,6 +251,63 @@ pub fn process_instruction(
 
         GovernanceInstruction::SetRealmConfigItem { args } => {
             process_set_realm_config_item(program_id, accounts, args)
+        }
+
+        GovernanceInstruction::CreateTransactionBuffer {
+            buffer_index,
+            final_buffer_hash,
+            final_buffer_size,
+            buffer,
+        } => process_create_transaction_buffer(
+            program_id,
+            accounts,
+            buffer_index,
+            final_buffer_hash,
+            final_buffer_size,
+            buffer,
+        ),
+
+        GovernanceInstruction::ExtendTransactionBuffer {
+            buffer_index,
+            buffer,
+        } => process_extend_transaction_buffer(program_id, accounts, buffer_index, buffer),
+
+        GovernanceInstruction::CloseTransactionBuffer { buffer_index } => {
+            process_close_transaction_buffer(program_id, accounts, buffer_index)
+        }
+
+        GovernanceInstruction::InsertVersionedTransactionFromBuffer {
+            option_index,
+            ephemeral_signers,
+            transaction_index,
+        } => process_insert_versioned_transaction_from_buffer(
+            program_id,
+            accounts,
+            option_index,
+            ephemeral_signers,
+            transaction_index,
+        ),
+
+        GovernanceInstruction::InsertVersionedTransaction {
+            option_index,
+            ephemeral_signers,
+            transaction_index,
+            transaction_message,
+        } => process_insert_versioned_transaction(
+            program_id,
+            accounts,
+            option_index,
+            ephemeral_signers,
+            transaction_index,
+            transaction_message,
+        ),
+
+        GovernanceInstruction::ExecuteVersionedTransaction {} => {
+            process_execute_versioned_transaction(program_id, accounts)
+        }
+
+        GovernanceInstruction::RemoveVersionedTransaction {} => {
+            process_remove_versioned_transaction(program_id, accounts)
         }
     }
 }

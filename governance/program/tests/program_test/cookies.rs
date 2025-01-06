@@ -196,3 +196,19 @@ pub struct TokenOwnerRecordLockCookie {
 pub struct TokenOwnerRecordLockAuthorityCookie {
     pub authority: Keypair,
 }
+
+#[derive(Debug)]
+pub struct ProposalTransactionBufferCookie {
+    pub address: Pubkey,
+    pub buffer_index: u8,
+
+    pub buffer: Vec<u8>,
+}
+
+#[derive(Debug)]
+pub struct ProposalVersionedTransactionCookie {
+    pub address: Pubkey,
+    pub option_index: u8,
+
+    pub transaction_index: u16,
+}

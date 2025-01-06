@@ -7,7 +7,7 @@ use borsh::{BorshDeserialize, BorshSerialize};
 
 /// Concise serialization schema for vectors where the length can be represented
 /// by any type `L` (typically unsigned integer like `u8` or `u16`)
-/// that implements AnchorDeserialize and can be converted to `u32`.
+/// that implements BorshDeserialize and can be converted to `u32`.
 #[derive(Clone, Debug, Default)]
 pub struct SmallVec<L, T>(Vec<T>, PhantomData<L>);
 

@@ -1,12 +1,13 @@
 //! General purpose TransactionMessage utility functions
 
 use {
-    crate::tools::small_vec::SmallVec, borsh::{BorshDeserialize, BorshSerialize},
-    solana_program::pubkey::Pubkey
+    crate::tools::small_vec::SmallVec,
+    borsh::{BorshDeserialize, BorshSerialize},
+    solana_program::pubkey::Pubkey,
 };
 
 /// Unvalidated instruction data, must be treated as untrusted.
-#[derive(Clone, BorshDeserialize, BorshSerialize)]
+#[derive(Clone, Debug, BorshDeserialize, BorshSerialize)]
 pub struct TransactionMessage {
     /// The number of signer pubkeys in the account_keys vec.
     pub num_signers: u8,
@@ -24,7 +25,7 @@ pub struct TransactionMessage {
 }
 
 /// Concise serialization schema for instructions that make up transaction.
-#[derive(Clone, BorshDeserialize, BorshSerialize)]
+#[derive(Clone, Debug, BorshDeserialize, BorshSerialize)]
 pub struct CompiledInstruction {
     /// Indices of the program_id in tx's account_keys
     pub program_id_index: u8,
@@ -36,7 +37,7 @@ pub struct CompiledInstruction {
 
 /// Address table lookups describe an on-chain address lookup table to use
 /// for loading more readonly and writable accounts in a single tx.
-#[derive(Clone, BorshDeserialize, BorshSerialize)]
+#[derive(Clone, Debug, BorshDeserialize, BorshSerialize)]
 pub struct MessageAddressTableLookup {
     /// Address lookup table account key
     pub account_key: Pubkey,
