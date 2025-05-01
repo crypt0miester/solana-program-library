@@ -1,279 +1,204 @@
-# Solana Program Library
+# SPL Governance
 
-The Solana Program Library (SPL) is a collection of on-chain programs targeting
-the [Sealevel parallel
-runtime](https://medium.com/solana-labs/sealevel-parallel-processing-thousands-of-smart-contracts-d814b378192).
-These programs are tested against Solana's implementation of Sealevel,
-solana-runtime, and some are deployed to Mainnet Beta.  As others implement
-Sealevel, we will graciously accept patches to ensure the programs here are
-portable across all implementations.
+SPL Governance is a program the chief purpose of which is to provide core building blocks and primitives to create
+Decentralized Autonomous Organizations (DAOs) on the Solana blockchain.
 
-For more information see the [SPL documentation](https://spl.solana.com) and the [Token TypeDocs](https://solana-labs.github.io/solana-program-library/token/js/).
+The program is DAO type and asset type agnostic and can be used to build any type of DAOs
+which can own and manage any type of assets.
 
-## Deployments
+For example it can be used as an authority provider for mints, token accounts and other forms of access control where
+we may want a voting population to vote on disbursement of funds collectively.
+It can also control upgrades of itself and other programs through democratic means.
 
-Only a subset of programs within the Solana Program Library repo are deployed to
-the Solana Mainnet Beta. Currently, this includes:
+In the simplest form the program can be used for Multisig control over a shared wallet (treasury account) or as
+a Multisig upgrade authority for Solana programs
 
-| Program | Version |
-| --- | --- |
-| [token](https://github.com/solana-labs/solana-program-library/tree/master/token/program) | [3.4.0](https://github.com/solana-labs/solana-program-library/releases/tag/token-v3.4.0) |
-| [associated-token-account](https://github.com/solana-labs/solana-program-library/tree/master/associated-token-account/program) | [1.1.0](https://github.com/solana-labs/solana-program-library/releases/tag/associated-token-account-v1.1.0) |
-| [token-2022](https://github.com/solana-labs/solana-program-library/tree/master/token/program-2022) | [1.0.0](https://github.com/solana-labs/solana-program-library/releases/tag/token-2022-v1.0.0) |
-| [governance](https://github.com/solana-labs/solana-program-library/tree/master/governance/program) | [3.1.0](https://github.com/solana-labs/solana-program-library/releases/tag/governance-v3.1.0) |
-| [stake-pool](https://github.com/solana-labs/solana-program-library/tree/master/stake-pool/program) | [1.0.0](https://github.com/solana-labs/solana-program-library/releases/tag/stake-pool-v1.0.0) |
-| [account-compression](https://github.com/solana-labs/solana-program-library/tree/master/account-compression/programs/account-compression) | [0.1.3](https://github.com/solana-labs/solana-program-library/releases/tag/account-compression-v0.1.3) |
-| [shared-memory](https://github.com/solana-labs/solana-program-library/tree/master/shared-memory/program) | [1.0.0](https://github.com/solana-labs/solana-program-library/commit/b40e0dd3fd6c0e509dc1e8dd3da0a6d609035bbd) |
-| [feature-proposal](https://github.com/solana-labs/solana-program-library/tree/master/feature-proposal/program) | [1.0.0](https://github.com/solana-labs/solana-program-library/releases/tag/feature-proposal-v1.0.0) |
-| [name-service](https://github.com/solana-labs/solana-program-library/tree/master/name-service/program) | [0.3.0](https://github.com/solana-labs/solana-program-library/releases/tag/name-service-v0.3.0) |
-| [memo](https://github.com/solana-labs/solana-program-library/tree/master/memo/program) | [3.0.0](https://github.com/solana-labs/solana-program-library/releases/tag/memo-v3.0.0) |
+## Architecture
 
-In addition, one program is planned for deployment to Solana Mainnet Beta:
+The program is modular and uses open/close architecture where individual parts of the program's
+behavior can be customized through external plugins.
 
-| Program | Version |
-| --- | --- |
-| [single-pool](https://github.com/solana-labs/solana-program-library/tree/master/single-pool/program) | [1.0.0](https://github.com/solana-labs/solana-program-library/releases/tag/single-pool-v1.0.0) |
+For example the default implementation of the program takes deposits of the governance tokens in exchange for
+voting power but it can be swapped with a custom program implementation which can implement any custom requirements
+like token locking, token escrows, NFT voting or multi token governance structures.
 
-## Audits
+The plugins are ordinary Solana programs and can be written using any supporting technology like Anchor framework
+for example.
 
-Only a subset of programs within the Solana Program Library repo are audited. Currently, this includes:
+## Deployment
 
-| Program | Last Audit Date | Version |
-| --- | --- | --- |
-| [token](https://github.com/solana-labs/solana-program-library/tree/master/token/program) | 2022-08-04 (Peer review) | [4fadd55](https://github.com/solana-labs/solana-program-library/commit/4fadd553e1c549afd1d62aeb5ffa7ef31d1999d1) |
-| [associated-token-account](https://github.com/solana-labs/solana-program-library/tree/master/associated-token-account/program) | 2022-08-04 (Peer review) | [c00194d](https://github.com/solana-labs/solana-program-library/commit/c00194d2257302f028f44a403c6dee95c0f9c3bc) |
-| [token-2022](https://github.com/solana-labs/solana-program-library/tree/master/token/program-2022) | [2023-11-03](https://github.com/solana-labs/security-audits/blob/master/spl/OtterSecToken2022Audit-2023-11-03.pdf) | [e924132](https://github.com/solana-labs/solana-program-library/tree/e924132d65ba0896249fb4983f6f97caff15721a) |
-| [stake-pool](https://github.com/solana-labs/solana-program-library/tree/master/stake-pool/program) | [2023-11-14](https://github.com/solana-labs/security-audits/blob/master/spl/NeodymeStakePoolAudit-2023-11-14.pdf) | [6ed7254](https://github.com/solana-labs/solana-program-library/commit/6ed7254d1a578ffbc2b091d28cb92b25e7cc511d) |
-| [account-compression](https://github.com/solana-labs/solana-program-library/tree/master/account-compression/programs/account-compression) | [2022-12-05](https://github.com/solana-labs/security-audits/blob/master/spl/OtterSecAccountCompressionAudit-2022-12-03.pdf) | [6e81794](https://github.com/solana-labs/solana-program-library/commit/6e81794) |
-| [shared-memory](https://github.com/solana-labs/solana-program-library/tree/master/shared-memory/program) | [2021-02-25](https://github.com/solana-labs/security-audits/blob/master/spl/KudelskiTokenSwapSharedMemAudit-2021-02-25.pdf) | [b40e0dd](https://github.com/solana-labs/solana-program-library/commit/b40e0dd3fd6c0e509dc1e8dd3da0a6d609035bbd) |
-| [single-pool](https://github.com/solana-labs/solana-program-library/tree/master/single-pool/program) | [2023-08-08](https://github.com/solana-labs/security-audits/blob/master/spl/NeodymeSinglePoolAudit-2023-08-08.pdf) | [735d729](https://github.com/solana-labs/solana-program-library/commit/735d7292e35d35101750a4452d2647bdbf848e8b) |
+The program supports two deployment models 1) DAO owned instance and 2) shared instance
 
-All other programs may be updated from time to time. These programs are not
-audited, so fork and deploy them at your own risk. Here is the full list of
-unaudited programs:
+### 1) DAO owned instance
 
-* [binary-option](https://github.com/solana-labs/solana-program-library/tree/master/binary-option/program)
-* [binary-oracle-pair](https://github.com/solana-labs/solana-program-library/tree/master/binary-oracle-pair/program)
-* [feature-proposal](https://github.com/solana-labs/solana-program-library/tree/master/feature-proposal/program)
-* [instruction-padding](https://github.com/solana-labs/solana-program-library/tree/master/instruction-padding/program)
-* [managed-token](https://github.com/solana-labs/solana-program-library/tree/master/managed-token/program)
-* [memo](https://github.com/solana-labs/solana-program-library/tree/master/memo/program)
-* [name-service](https://github.com/solana-labs/solana-program-library/tree/master/name-service/program)
-* [record](https://github.com/solana-labs/solana-program-library/tree/master/record/program)
-* [stateless-asks](https://github.com/solana-labs/solana-program-library/tree/master/stateless-asks/program)
-* [token-lending](https://github.com/solana-labs/solana-program-library/tree/master/token-lending/program)
-* [token-swap](https://github.com/solana-labs/solana-program-library/tree/master/token-swap/program)
-* [token-upgrade](https://github.com/solana-labs/solana-program-library/tree/master/token-upgrade/program)
+When a DAO needs full control over the governance program then it's recommended to deploy and use its own instance
+and put it under the DAO governance.
+This way only the DAO can ever change and upgrade the most important program it uses.
 
-More information about the repository's security policy at
-[SECURITY.md](https://github.com/solana-labs/solana-program-library/tree/master/SECURITY.md).
+Note: Using your own instance is not the same as forking the source code. It simply means deploying the program's code
+and transferring its upgrade authority to the DAO.
 
-The [security-audits repo](https://github.com/solana-labs/security-audits) contains
-all past and present program audits.
+### 2) Shared instance
 
-## Program Packages
+In cases where deploying the owned instance is not practical a shared instances of the program can be used.
+There are two instances available for anybody to use on mainnet
 
-| Package | Description | Version | Docs |
-| :-- | :-- | :--| :-- |
-| `spl-token` | ERC20-like token program on Solana | [![Crates.io](https://img.shields.io/crates/v/spl-token)](https://crates.io/crates/spl-token) | [![Docs.rs](https://docs.rs/spl-token/badge.svg)](https://docs.rs/spl-token) |
-| `spl-token-2022` | Token program compatible with `spl-token`, with extensions | [![Crates.io](https://img.shields.io/crates/v/spl-token-2022)](https://crates.io/crates/spl-token-2022) | [![Docs.rs](https://docs.rs/spl-token-2022/badge.svg)](https://docs.rs/spl-token-2022) |
-| `spl-associated-token-account` | Stateless protocol defining a canonical "associated" token account for a wallet | [![Crates.io](https://img.shields.io/crates/v/spl-associated-token-account)](https://crates.io/crates/spl-associated-token-account) | [![Docs.rs](https://docs.rs/spl-associated-token-account/badge.svg)](https://docs.rs/spl-associated-token-account) |
-| `spl-governance` | DAO program using tokens for voting | [![Crates.io](https://img.shields.io/crates/v/spl-governance)](https://crates.io/crates/spl-governance) | [![Docs.rs](https://docs.rs/spl-governance/badge.svg)](https://docs.rs/spl-governance) |
-| `spl-account-compression` | Program for managing compressed accounts stored in an off-chain merkle tree | [![Crates.io](https://img.shields.io/crates/v/spl-account-compression)](https://crates.io/crates/spl-account-compression) | [![Docs.rs](https://docs.rs/spl-account-compression/badge.svg)](https://docs.rs/spl-account-compression) |
-| `spl-feature-proposal` | Program using tokens to vote on enabling Solana network features | [![Crates.io](https://img.shields.io/crates/v/spl-feature-proposal)](https://crates.io/crates/spl-feature-proposal) | [![Docs.rs](https://docs.rs/spl-feature-proposal/badge.svg)](https://docs.rs/spl-feature-proposal) |
-| `spl-noop` | Program that does nothing, used for logging instruction data | [![Crates.io](https://img.shields.io/crates/v/spl-noop)](https://crates.io/crates/spl-noop) | [![Docs.rs](https://docs.rs/spl-noop/badge.svg)](https://docs.rs/spl-noop) |
-| `spl-memo` | Program for logging signed memos on-chain | [![Crates.io](https://img.shields.io/crates/v/spl-memo)](https://crates.io/crates/spl-memo) | [![Docs.rs](https://docs.rs/spl-memo/badge.svg)](https://docs.rs/spl-memo) |
-| `spl-name-service` | Program for managing ownership of data on-chain | [![Crates.io](https://img.shields.io/crates/v/spl-name-service)](https://crates.io/crates/spl-name-service) | [![Docs.rs](https://docs.rs/spl-name-service/badge.svg)](https://docs.rs/spl-name-service) |
-| `spl-shared-memory` | Program for sharing data between programs | [![Crates.io](https://img.shields.io/crates/v/spl-shared-memory)](https://crates.io/crates/spl-shared-memory) | [![Docs.rs](https://docs.rs/spl-shared-memory/badge.svg)](https://docs.rs/spl-shared-memory) |
-| `spl-stake-pool` | Program for pooling stake accounts, managed by another entity | [![Crates.io](https://img.shields.io/crates/v/spl-stake-pool)](https://crates.io/crates/spl-stake-pool) | [![Docs.rs](https://docs.rs/spl-stake-pool/badge.svg)](https://docs.rs/spl-stake-pool) |
-| `spl-instruction-padding` | Program to padding to other instructions | [![Crates.io](https://img.shields.io/crates/v/spl-instruction-padding)](https://crates.io/crates/spl-instruction-padding) | [![Docs.rs](https://docs.rs/spl-instruction-padding/badge.svg)](https://docs.rs/spl-instruction-padding) |
-| `spl-concurrent-merkle-tree` | Library for on-chain representation of merkle tree | [![Crates.io](https://img.shields.io/crates/v/spl-concurrent-merkle-tree)](https://crates.io/crates/spl-concurrent-merkle-tree) | [![Docs.rs](https://docs.rs/spl-concurrent-merkle-tree/badge.svg)](https://docs.rs/spl-concurrent-merkle-tree) |
-| `spl-math` | Library for on-chain math | [![Crates.io](https://img.shields.io/crates/v/spl-math)](https://crates.io/crates/spl-math) | [![Docs.rs](https://docs.rs/spl-math/badge.svg)](https://docs.rs/spl-math) |
-| `spl-token-lending` | Over-collateralized lending program for tokens | [![Crates.io](https://img.shields.io/crates/v/spl-token-lending)](https://crates.io/crates/spl-token-lending) | [![Docs.rs](https://docs.rs/spl-token-lending/badge.svg)](https://docs.rs/spl-token-lending) |
-| `spl-token-swap` | AMM for trading tokens | [![Crates.io](https://img.shields.io/crates/v/spl-token-swap)](https://crates.io/crates/spl-token-swap) | [![Docs.rs](https://docs.rs/spl-token-swap/badge.svg)](https://docs.rs/spl-token-swap) |
-| `spl-token-upgrade` | Protocol for burning one token type in exchange for another | [![Crates.io](https://img.shields.io/crates/v/spl-token-upgrade)](https://crates.io/crates/spl-token-upgrade) | [![Docs.rs](https://docs.rs/spl-token-upgrade/badge.svg)](https://docs.rs/spl-token-upgrade) |
+`GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw` - default `spl-governance` instance
 
-## CLI Packages
+`GTesTBiEWE32WHXXE2S4XbZvA5CrEc4xs6ZgRe895dP` - test instance which can be used to setup test DAOs
 
-| Package | Description | Version |
-| :-- | :-- | :--|
-| `spl-token-cli` | CLI for the token, token-2022, and associated-token-account programs | [![Crates.io](https://img.shields.io/crates/v/spl-token-cli)](https://crates.io/crates/spl-token-cli) |
-| `spl-stake-pool-cli` | CLI for the stake-pool program | [![Crates.io](https://img.shields.io/crates/v/spl-stake-pool-cli)](https://crates.io/crates/spl-stake-pool-cli) |
-| `spl-feature-proposal-cli` | CLI for the feature-proposal program | [![Crates.io](https://img.shields.io/crates/v/spl-feature-proposal-cli)](https://crates.io/crates/spl-feature-proposal-cli) |
-| `spl-token-lending-cli` | CLI for the token-lending program | [![Crates.io](https://img.shields.io/crates/v/spl-token-lending-cli)](https://crates.io/crates/spl-token-lending-cli) |
-| `spl-token-upgrade-cli` | CLI for the token-upgrade program | [![Crates.io](https://img.shields.io/crates/v/spl-token-upgrade-cli)](https://crates.io/crates/spl-token-upgrade-cli) |
+## Governance UI
 
-## JavaScript Packages
+There are two UIs available which showcase the programs capabilities:
 
-| Package | Description | Version | Docs |
-| :-- | :-- | :--| :-- |
-| `@solana/spl-token` | Bindings for the token, token-2022, and associated-token-account programs | [![npm](https://img.shields.io/npm/v/@solana/spl-token.svg)](https://www.npmjs.com/package/@solana/spl-token) | [![Docs](https://img.shields.io/badge/docs-typedoc-blue)](https://solana-labs.github.io/solana-program-library/token/js) |
-| `@solana/spl-governance` | Bindings for the governance program | [![npm](https://img.shields.io/npm/v/@solana/spl-governance.svg)](https://www.npmjs.com/package/@solana/spl-governance) | N/A |
-| `@solana/spl-account-compression` | Bindings for the account-compression program | [![npm](https://img.shields.io/npm/v/@solana/spl-account-compression.svg)](https://www.npmjs.com/package/@solana/spl-account-compression) | [![Docs](https://img.shields.io/badge/docs-typedoc-blue)](https://solana-labs.github.io/solana-program-library/account-compression/sdk/docs) |
-| `@solana/spl-memo` | Bindings for the memo program | [![npm](https://img.shields.io/npm/v/@solana/spl-memo.svg)](https://www.npmjs.com/package/@solana/spl-memo) | N/A |
-| `@solana/spl-name-service` | Bindings for the name-service program | [![npm](https://img.shields.io/npm/v/@solana/spl-name-service.svg)](https://www.npmjs.com/package/@solana/spl-name-service) | N/A |
-| `@solana/spl-stake-pool` | Bindings for the stake-pool program | [![npm](https://img.shields.io/npm/v/@solana/spl-stake-pool.svg)](https://www.npmjs.com/package/@solana/spl-stake-pool) | N/A |
-| `@solana/spl-token-lending` | Bindings for the token-lending program | [![npm](https://img.shields.io/npm/v/@solana/spl-token-lending.svg)](https://www.npmjs.com/package/@solana/spl-token-lending) | N/A |
-| `@solana/spl-token-swap` | Bindings for the token-swap program | [![npm](https://img.shields.io/npm/v/@solana/spl-token-swap.svg)](https://www.npmjs.com/package/@solana/spl-token-swap) | N/A |
+- [Realms Explorer](https://github.com/solana-labs/oyster) project (part of Oyster monorepo) provides basic and data
+  oriented UI to create and manage DAOs: [realms-explorer](https://realms-explorer.com/)
 
-## Development
+  It's a good starting point for developers to learn about the program and interact with it
 
-### Environment Setup
+- [Governance UI](https://github.com/solana-labs/governance-ui) project built together
+  with the [MNGO](https://mango.markets/) team: [governance-ui](https://realms.today)
 
-1. Install the latest [Solana tools](https://docs.solana.com/cli/install-solana-cli-tools).
-2. Install the latest [Rust stable](https://rustup.rs/). If you already have Rust, run `rustup update` to get the latest version.
-3. Install the `libudev` development package for your distribution (`libudev-dev` on Debian-derived distros, `libudev-devel` on Redhat-derived).
+  This is advanced, user friendly and tasks oriented UI used by most of the existing DAOs on Solana
 
-### Build
+## Client SDK
 
-### Build on-chain programs
+[@solana/spl-governance](https://www.npmjs.com/package/@solana/spl-governance)
 
-```bash
-# To build all on-chain programs
-$ cargo build-sbf
+## Documentation and Help
 
-# To build a specific on-chain program
-$ cd <program_name>/program
-$ cargo build-sbf
-```
+Program and UI documentation: [spl-governance-docs](https://docs.realms.today)
 
-### Build clients
+Discord server: [spl-governance-discord](https://discord.gg/VsPbrK2hJk)
 
-```bash
-# To build all clients
-$ cargo build
+## Program Accounts
 
-# To build a specific client
-$ cd <program_name>/cli
-$ cargo build
-```
+The diagram below shows an illustrative configuration of the program accounts when used to control upgrades
+of multiple programs through proposals
 
-### Test
+![Accounts diagram](./resources/governance-accounts.jpg)
 
-Unit tests contained within all projects can be run with:
-```bash
-$ cargo test      # <-- runs host-based tests
-$ cargo test-sbf  # <-- runs BPF program tests
-```
+### Realm account
 
-To run a specific program's tests, such as SPL Token:
-```bash
-$ cd token/program
-$ cargo test      # <-- runs host-based tests
-$ cargo test-sbf  # <-- runs BPF program tests
-```
+Realm account ties Community Token Mint and optional Council Token mint to create a realm
+for any governance pertaining to the community of the token holders.
+For example a trading protocol can issue a governance token and use it to create its governance realm.
 
-Integration testing may be performed via the per-project .js bindings.  See the
-[token program's js project](token/js) for an example.
+Once a realm is created voters can deposit Governing tokens (Community or Council) to the realm and
+use the deposited amount as their voting weight to vote on Proposals within that realm.
 
-### Common Issues
+### Program Governance account
 
-Solutions to a few issues you might run into are mentioned here.
+The basic building block of governance to update programs is the ProgramGovernance account.
+It ties a governed Program ID and holds configuration options defining governance rules.
+The governed Program ID is used as the seed for a [Program Derived Address](https://docs.solana.com/developing/programming-model/calling-between-programs#program-derived-addresses),
+and this program derived address is what is used as the address of the Governance account for your Program ID.
 
-1. `Failed to open: ../../deploy/spl_<program-name>.so`
+What this means is that there can only ever be ONE Governance account for a given Program.
+The governance program validates at creation time of the Governance account that the current upgrade authority of the program
+taken under governance signed the transaction. Optionally `CreateProgramGovernance` instruction can also transfer `upgrade_authority`
+of the governed program to the Governance PDA at the creation time of the Governance account.
 
-    Update your Rust and Cargo to the latest versions and re-run `cargo build-sbf` in the relevant `<program-name>` directory,
-    or run it at the repository root to rebuild all on-chain programs.
+### Mint Governance account
 
-2. [Error while loading shared libraries. (libssl.so.1.1)](https://solana.stackexchange.com/q/3029/36)
+A mint governance account allows a mint authority to setup governance over an SPL Mint account.
+The Governance program validates at creation time that the current mint authority signed the transaction to
+create the governance and optionally can transfer the authority to the Governance account.
+Once setup the Mint Governance allows governance participants to create Proposals which execute mint instructions for
+the governed Mint.
 
-    A working solution was mentioned [here](https://solana.stackexchange.com/q/3029/36).
-    Install libssl.
-    ```bash
-    wget http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1l-1ubuntu1.2_amd64.deb
-    sudo dpkg -i libssl1.1_1.1.1l-1ubuntu1.2_amd64.deb
-    ```
+### Token Governance account
 
-3.  CPU or Memory usage at 100%
+A token governance account allows a token account owner to setup governance over an SPL Token account.
+The Governance program validates at creation time the current owner signed the transaction to
+create the governance and optionally can transfer the owner to the Governance account.
+Once setup the Token Governance allows participants to create Proposals to execute transfer instructions
+from the governed token account.
 
-    This is to be expected while building some of the programs in this library.
-    The simplest solution is to add the `--jobs 1` flag to the build commands to limit the number of parallel jobs to 1 and check if that fixes the issue. Although this will mean much longer build times.
+### How does the authority work?
 
+Governance can handle arbitrary executions of code. In the program governance case it can execute program upgrades.
+It does this through executing instructions to the bpf-upgradable-loader program.
+Bpf-upgradable-loader allows any signer who has Upgrade authority over a Buffer account and the Program account itself
+to upgrade it using its Upgrade command.
+Normally, this is the developer who created and deployed the program, and this creation of the Buffer account containing
+the new program data and overwriting of the existing Program account's data with it is handled in the background for you
+by the Solana program deploy cli command.
+However, in order for Governance to be useful, Governance now needs this authority.
 
-### Clippy
-```bash
-$ cargo clippy
-```
+In similar fashion for Mint and Token governances the relevant authorities to mint and transfer tokens
+are transferred to the Governance account. It in turn allows participants to create and vote on Proposals
+which can then execute
+mint and transfer instructions for the governed accounts.
 
-### Coverage
-```bash
-$ ./coverage.sh  # Help wanted! Coverage build currently fails on MacOS due to an XCode `grcov` mismatch...
-```
+### Proposal accounts
 
-#### MacOS
+A Proposal is an instance of a Governance created to vote on and execute given set of instructions.
+It is created by someone (Proposal Owner) and tied to a given Governance account
+and has a set of executable instructions to it, a name and a description.
+It goes through various states (draft, voting, executing, ...) and users can vote on it
+if they have relevant Community or Council tokens.
+Its rules are determined by the Governance account that it is tied to, and when it executes,
+it is only eligible to use the [Program Derived Address](https://docs.solana.com/developing/programming-model/calling-between-programs#program-derived-addresses)
+authority given by the Governance account.
+So a Proposal for Sushi cannot for instance upgrade the Program for Uniswap.
 
-You may need to pin your grcov version, and then rustup with the apple-darwin nightly toolchain:
-```bash
-$ cargo install grcov --version 0.6.1
-$ rustup toolchain install nightly-x86_64-apple-darwin
-```
+When a Proposal is created by a user then the user becomes Proposal Owner and receives permission to edit the Proposal.
+With this power the Owner can edit the Proposal, add/remove Signatories to the Proposal and also cancel it.
+These Signatories can then show their approval of the Proposal by signing it off.
+Once all Signatories have signed off the Proposal the Proposal leaves Draft state and enters Voting state.
+Voting state lasts as long as the Governance has it configured to last, and during this time
+people holding Community (or Council) tokens may vote on the Proposal.
+Once the Proposal is "tipped" it either enters the Defeated or Succeeded state. If the vote can't be tipped automatically
+during the voting period but still reaches the required Yes vote threshold it can be manually transitioned to Succeeded state
+using FinalizeVote instruction.
+Once all Proposal transactions are executed the Proposal enters Completed state.
 
+In the Executing state an instruction can be run by any one at any time after the `hold_up_time` period has
+transpired.
 
-## Release Process
+### ProposalTransaction
 
-SPL programs are currently tagged and released manually. Each program is
-versioned independently of the others, with all new development occurring on
-master. Once a program is tested and deemed ready for release:
+A Proposal can have multiple Proposal Transactions with multiple instructions each, and they run independently of each other.
+These contain the actual data for instructions, and how long after the voting phase a user must wait before they can
+be executed.
 
-### Bump Version
+### Voting Dynamics
 
-  * Increment the version number in the program's Cargo.toml
-  * Run `cargo build-sbf <program>` to build binary. Note the
-    location of the generated `spl_<program>.so` for attaching to the Github
-    release.
-  * Open a PR with these version changes and merge after passing CI.
+When a Proposal is created and signed by its Signatories voters can start voting on it using their voting weight,
+equal to deposited governing tokens into the realm. A vote is tipped once it passes the defined `vote_threshold` of votes
+and enters Succeeded or Defeated state. If Succeeded then Proposal instructions can be executed after they hold_up_time passes.
 
-### Create Github tag
+Users can relinquish their vote any time during Proposal lifetime, but once Proposal is decided their vote can't be changed.
 
-Program tags are of the form `<program>-vX.Y.Z`.
-Create the new tag at the version-bump commit and push to the
-solana-program-library repository, eg:
+### Community and Councils governing tokens
 
-```
-$ git tag token-v1.0.0 b24bfe7
-$ git push upstream --tags
-```
+Each Governance Realm that gets created has the option to also have a Council mint.
+A council mint is simply a separate mint from the Community mint.
+What this means is that users can submit Proposals that have a different voting population from a different mint
+that can affect the same DAO. A practical application of this policy may be to have a very large population control
+major version bumps of Solana via normal SOL, for instance, but hot fixes be controlled via Council tokens,
+of which there may be only 30, and which may be themselves minted and distributed via proposals by the governing population.
 
-### Publish Github release
+Another important use case is to use the Council for DAO inception. At the beginning of a DAO life
+there are lots of risks and unknowns.
+For example it's not known whether the community of token holders would engage and participate in DAO votes.
+And if it would engage then to what extent. It means it can be difficult for example to decide how many votes are
+required for a proposal to be successfully voted on.
+This is why in order to avoid traps and potentially irreversible actions the Council can be used as a safety net
+in a similar way to Multisig to moderate and supervise the voting process at the DAO inception.
+Once the newly born DAO goes through several successful proposal votes and everything is going smoothly
+the council can be removed from the DAO through a community vote.
 
-  * Go to [GitHub Releases UI](https://github.com/solana-labs/solana-program-library/releases)
-  * Click "Draft new release", and enter the new tag in the "Tag version" box.
-  * Title the release "SPL <Program> vX.Y.Z", complete the description, and attach the `spl_<program>.so` binary
-  * Click "Publish release"
+The Council can also be used for protocols and communities which haven't launched their token yet.
+In such cases the DAO can be setup with the yet to launch token and the Council which would governed
+the DAO until the token is distributed.
 
-### Publish to Crates.io
+### Proposal Workflow
 
-Navigate to the program directory and run `cargo package`
-to test the build. Then run `cargo publish`.
+![Proposal Workflow](./resources/governance-workflow.jpg)
 
- # Disclaimer
+## Audit
 
-All claims, content, designs, algorithms, estimates, roadmaps,
-specifications, and performance measurements described in this project
-are done with the Solana Labs, Inc. (“SL”) best efforts. It is up to
-the reader to check and validate their accuracy and truthfulness.
-Furthermore nothing in this project constitutes a solicitation for
-investment.
-
-Any content produced by SL or developer resources that SL provides, are
-for educational and inspiration purposes only. SL does not encourage,
-induce or sanction the deployment, integration or use of any such
-applications (including the code comprising the Solana blockchain
-protocol) in violation of applicable laws or regulations and hereby
-prohibits any such deployment, integration or use. This includes use of
-any such applications by the reader (a) in violation of export control
-or sanctions laws of the United States or any other applicable
-jurisdiction, (b) if the reader is located in or ordinarily resident in
-a country or territory subject to comprehensive sanctions administered
-by the U.S. Office of Foreign Assets Control (OFAC), or (c) if the
-reader is or is working on behalf of a Specially Designated National
-(SDN) or a person subject to similar blocking or denied party
-prohibitions.
-
-The reader should be aware that U.S. export control and sanctions laws 
-prohibit U.S. persons (and other persons that are subject to such laws) 
-from transacting with persons in certain countries and territories or 
-that are on the SDN list. Accordingly, there is a risk to individuals 
-that other persons using any of the code contained in this repo, or a 
-derivation thereof, may be sanctioned persons and that transactions with 
-such persons would be a violation of U.S. export controls and sanctions law.
+The repository [README](https://github.com/solana-labs/solana-program-library#audits)
+contains information about program audits.

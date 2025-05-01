@@ -1,0 +1,41 @@
+[package]
+name = "spl-governance-addin-mock"
+version = "0.1.3"
+description = "Solana Program Library Governance Voter Weight Addin Program"
+authors = ["Solana Labs Maintainers <maintainers@solanalabs.com>"]
+repository = "https://github.com/solana-labs/solana-program-library"
+license = "Apache-2.0"
+edition = "2021"
+
+[features]
+no-entrypoint = []
+test-sbf = []
+
+[dependencies]
+arrayref = "0.3.7"
+bincode = "1.3.2"
+borsh = { workspace = true }
+num-derive = "0.4"
+num-traits = "0.2"
+serde = "1.0.195"
+serde_derive = "1.0.103"
+solana-program = { workspace = true }
+spl-token = { workspace = true, features = [ "no-entrypoint" ] }
+spl-governance-addin-api= { version = "0.1.3", path ="../addin-api"}
+spl-governance-tools= { version = "0.1.3", path ="../tools"}
+thiserror = "1.0"
+
+
+[dev-dependencies]
+assert_matches = "1.5.0"
+proptest = "1.4"
+solana-program-test = { workspace = true }
+solana-sdk = { workspace = true }
+spl-governance-test-sdk = { version = "0.1.3", path ="../test-sdk"}
+
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[lints]
+workspace = true

@@ -3,72 +3,16 @@ split-debuginfo = "unpacked"
 
 [workspace]
 members = [
-  "associated-token-account/program",
-  "associated-token-account/program-test",
-  "binary-option/program",
-  "binary-oracle-pair/program",
-  "examples/rust/cross-program-invocation",
-  "examples/rust/custom-heap",
-  "examples/rust/logging",
-  "examples/rust/sysvar",
-  "examples/rust/transfer-lamports",
-  "examples/rust/transfer-tokens",
-  "feature-gate/program",
-  "feature-proposal/program",
-  "feature-proposal/cli",
-  "governance/addin-mock/program",
-  "governance/addin-api",
-  "governance/program",
-  "governance/test-sdk",
-  "governance/tools",
-  "governance/chat/program",
-  "instruction-padding/program",
-  "libraries/discriminator",
-  "libraries/concurrent-merkle-tree",
-  "libraries/math",
-  "libraries/merkle-tree-reference",
-  "libraries/pod",
-  "libraries/program-error",
-  "libraries/tlv-account-resolution",
-  "libraries/type-length-value",
-  "libraries/type-length-value-derive-test",
-  "memo/program",
-  "name-service/program",
-  "managed-token/program",
-  "record/program",
-  "shared-memory/program",
-  "single-pool/cli",
-  "single-pool/program",
-  "stake-pool/cli",
-  "stake-pool/program",
-  "stateless-asks/program",
-  "token-collection/program",
-  "token-group/example",
-  "token-group/interface",
-  "token-lending/cli",
-  "token-lending/program",
-  "token-metadata/example",
-  "token-metadata/interface",
-  "token-swap/program",
-  "token-swap/program/fuzz",
-  "token-upgrade/cli",
-  "token-upgrade/program",
-  "token-wrap/program",
-  "token/cli",
-  "token/program",
-  "token/program-2022",
-  "token/program-2022-test",
-  "token/transfer-hook/cli",
-  "token/transfer-hook/example",
-  "token/transfer-hook/interface",
-  "token/client",
-  "utils/cgen",
-  "utils/test-client",
-  "token-lending/flash_loan_receiver",
+  "programs/addin-mock",
+  "programs/addin-api",
+  "programs/governance",
+  "programs/test-sdk",
+  "programs/tools",
+  "programs/chat",
+  "programs/transfer-hook/example"
 ]
 
-exclude = [
-]
+exclude = []
 
 resolver = "2"
 
@@ -97,7 +41,7 @@ solana-zk-token-sdk = "2.1.7"
 spl-tlv-account-resolution = "0.9.0"
 spl-transfer-hook-interface = "0.9.0"
 spl-token-client = "0.13.0"
-
+spl-token = "4.0" 
 
 [workspace.lints.rust.unexpected_cfgs]
 level = "warn"
