@@ -1,0 +1,20 @@
+[package]
+name = "pinocchio-utils"
+description = "Pinocchio helpers"
+version = "0.1.0"
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+pinocchio-utils-macro = { path = "../macro", optional = true }
+pinocchio = "0.8.4"
+sha2 = { version = "0.10.8 ", optional = true}
+
+[lints.rust]
+unexpected_cfgs = {level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
+
+[features]
+default = ["macro", "sha256_hash"]
+macro = ["dep:pinocchio-utils-macro"]
+sha256_hash = ["dep:sha2"]

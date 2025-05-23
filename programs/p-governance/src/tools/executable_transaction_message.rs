@@ -1,0 +1,350 @@
+//! General purpose ExecutableTransactionMessage utility functions
+
+use {
+    crate::{
+        error::GovernanceError,
+        state::{
+            p_address_lookup_table::{AddressLookupTable, ADDRESS_LOOKUP_TABLE_ID},
+            proposal_versioned_transaction::ProposalTransactionMessage,
+        },
+    },
+    pinocchio::{
+        account_info::AccountInfo,
+        cpi::slice_invoke_signed,
+        instruction::{AccountMeta, Instruction, Seed, Signer},
+        program_error::ProgramError,
+        pubkey::Pubkey,
+    },
+    pinocchio_log::log,
+    std::{collections::HashMap, convert::From},
+};
+
+/// Sanitized and validated combination of a `ProposalTransactionMessage` and
+/// `AccountInfo`s it references.
+pub struct ExecutableTransactionMessage<'a> {
+    /// Message which loaded a collection of lookup table addresses.
+    message: ProposalTransactionMessage,
+    /// Resolved `account_keys` of the message.
+    static_accounts: Vec<&'a AccountInfo>,
+    /// Concatenated vector of resolved `writable_indexes` from all address
+    /// lookups.
+    loaded_writable_accounts: Vec<&'a AccountInfo>,
+    /// Concatenated vector of resolved `readonly_indexes` from all address
+    /// lookups.
+    loaded_readonly_accounts: Vec<&'a AccountInfo>,
+}
+
+impl<'a> ExecutableTransactionMessage<'a> {
+    /// # Arguments
+    /// `message` - a `ProposalTransactionMessage`.
+    /// `message_account_infos` - AccountInfo's that are expected to be
+    /// mentioned in the message. `address_lookup_table_account_infos` -
+    /// AccountInfo's that are expected to correspond to the lookup tables
+    /// mentioned in `message.address_table_lookups`. `native_treasury_pubkey` - The
+    /// native_treasury_pubkey PDA that is expected to sign the message.
+    /// `governance_pubkey` - The governance PDA that is expected to sign the
+    /// message. `ephemeral_signer_pdas` - The ephemeral signer PDAs that are
+    /// expected to sign the message.
+    pub fn new_validated(
+        message: ProposalTransactionMessage,
+        message_account_infos: &'a [AccountInfo],
+        address_lookup_table_account_infos: &'a [AccountInfo],
+        native_treasury_pubkey: &'a Pubkey,
+        governance_pubkey: &'a Pubkey,
+        ephemeral_signer_pdas: &'a [Pubkey],
+    ) -> Result<Self, ProgramError> {
+        // CHECK: `address_lookup_table_account_infos` must be valid
+        // `AddressLookupTable`s         and be the ones mentioned in
+        // `message.address_table_lookups`
+        if address_lookup_table_account_infos.len() != message.address_table_lookups.len() {
+            return Err(GovernanceError::InvalidNumberOfAccounts.into());
+        }
+        let lookup_tables: HashMap<&Pubkey, &AccountInfo> = address_lookup_table_account_infos
+            .iter()
+            .enumerate()
+            .map(|(index, maybe_lookup_table)| {
+                let maybe_lookup_table_owner: Pubkey = unsafe { *maybe_lookup_table.owner() };
+                // The lookup table account must be owned by SolanaAddressLookupTableProgram.
+                if maybe_lookup_table_owner != ADDRESS_LOOKUP_TABLE_ID {
+                    return Err(GovernanceError::InvalidLookupTableAccountOwner.into());
+                }
+                // The lookup table must be mentioned in `message.address_table_lookups` at the
+                // same index.
+                if message
+                    .address_table_lookups
+                    .get(index)
+                    .map(|lookup| &lookup.account_key)
+                    != Some(maybe_lookup_table.key())
+                {
+                    return Err(GovernanceError::InvalidLookupTableAccountKey.into());
+                }
+                Ok((maybe_lookup_table.key(), maybe_lookup_table))
+            })
+            .collect::<Result<HashMap<&Pubkey, &AccountInfo>, ProgramError>>()?;
+
+        // CHECK: `account_infos` should exactly match the number of accounts mentioned
+        // in the message.
+        if message_account_infos.len() != message.num_all_account_keys() {
+            return Err(GovernanceError::InvalidNumberOfAccounts.into());
+        }
+
+        let mut static_accounts = Vec::new();
+
+        // CHECK: `message.account_keys` should come first in `account_infos` and have
+        // modifiers expected by the message.
+        for (i, account_key) in message.account_keys.iter().enumerate() {
+            let account_info = &message_account_infos[i];
+
+            if account_info.key() != account_key {
+                return Err(GovernanceError::InvalidAccountFoundInMessage.into());
+            }
+            // If the account is marked as signer in the message, it must be a signer in the
+            // account infos too. Unless it's a native_treasury or governance_pubkey or an ephemeral signer
+            // PDA, as they cannot be passed as signers to `remaining_accounts`,
+            // because they are PDA's and can't sign the transaction.
+            if message.is_signer_index(i)
+                && account_info.key() != native_treasury_pubkey
+                && account_info.key() != governance_pubkey
+                && !ephemeral_signer_pdas.contains(account_info.key())
+            {
+                // Verify the account is an authorized signer.
+                // If not, return an error with the unauthorized account's public key
+                if !account_info.is_signer() {
+                    log!("Account {} is not an unexpected signer", account_info.key());
+                    return Err(GovernanceError::InvalidAccountSigner.into());
+                }
+            }
+            // If the account is marked as writable in the message, it must be writable in
+            // the account infos too.
+            if message.is_static_writable_index(i) {
+                if !account_info.is_writable() {
+                    return Err(GovernanceError::InvalidAccountWriteable.into());
+                }
+            }
+            static_accounts.push(account_info);
+        }
+
+        let mut writable_accounts = Vec::new();
+        let mut readonly_accounts = Vec::new();
+
+        // CHECK: `message_account_infos` loaded with lookup tables should come after
+        // `message.account_keys`,        in the same order and with the same
+        // modifiers as listed in lookups. Track where we are in the message
+        // account indexes. Start after `message.account_keys`.
+        let mut message_indexes_cursor = message.account_keys.len();
+        for lookup in message.address_table_lookups.iter() {
+            // This is cheap deserialization, it doesn't allocate/clone space for addresses.
+            let lookup_table_data = &lookup_tables.get(&lookup.account_key).unwrap();
+
+            let lookup_table = AddressLookupTable::from_account_info(lookup_table_data)
+                .map_err(|_| GovernanceError::InvalidLookupTableAccountKey)?;
+
+            // Accounts listed as writable in lookup, should be loaded as writable.
+            for (i, index_in_lookup_table) in lookup.writable_indexes.iter().enumerate() {
+                // Check the modifiers.
+                let index = message_indexes_cursor + i;
+                let loaded_account_info = &message_account_infos
+                    .get(index)
+                    .ok_or(GovernanceError::InvalidNumberOfAccounts)?;
+
+                if !loaded_account_info.is_writable() {
+                    log!("Loaded account should be writeable");
+                    return Err(GovernanceError::InvalidAccountWriteable.into());
+                }
+
+                // Check that the pubkey matches the one from the actual lookup table.
+                let pubkey_from_lookup_table = lookup_table
+                    .addresses
+                    .get(usize::from(*index_in_lookup_table))
+                    .ok_or(GovernanceError::MissingAddressInLookuptable)?;
+
+                if !loaded_account_info.key().eq(pubkey_from_lookup_table) {
+                    log!("Loaded account does not match pubkey from lookup table");
+                    return Err(GovernanceError::InvalidAccountFound.into());
+                }
+
+                writable_accounts.push(*loaded_account_info);
+            }
+            message_indexes_cursor += lookup.writable_indexes.len();
+
+            // Accounts listed as readonly in lookup.
+            for (i, index_in_lookup_table) in lookup.readonly_indexes.iter().enumerate() {
+                // Check the modifiers.
+                let index = message_indexes_cursor + i;
+                let loaded_account_info = &message_account_infos
+                    .get(index)
+                    .ok_or(GovernanceError::InvalidNumberOfAccounts)?;
+                // Check that the pubkey matches the one from the actual lookup table.
+                let pubkey_from_lookup_table = lookup_table
+                    .addresses
+                    .get(usize::from(*index_in_lookup_table))
+                    .ok_or(GovernanceError::MissingAddressInLookuptable)?;
+
+                if loaded_account_info.key().eq(pubkey_from_lookup_table) {
+                    log!("Loaded account should not match pubkey from lookup table");
+                    return Err(GovernanceError::InvalidAccountFound.into());
+                }
+
+                readonly_accounts.push(*loaded_account_info);
+            }
+            message_indexes_cursor += lookup.readonly_indexes.len();
+        }
+
+        Ok(Self {
+            message,
+            static_accounts,
+            loaded_writable_accounts: writable_accounts,
+            loaded_readonly_accounts: readonly_accounts,
+        })
+    }
+
+    /// Executes all instructions in the message via CPI calls.
+    /// # Arguments
+    /// * `governance_signer_seeds` - Seeds for the governance signer PDA.
+    /// * `ephemeral_signer_seeds` - Seeds for the ephemeral signer PDAs.
+    /// * `governance_pubkey` - Pubkey of the governance
+    /// * `treasury_pubkey` - Pubkey of the treasury
+    /// * `protected_accounts` - Accounts that must not be passed as writable to
+    ///   the CPI calls to prevent potential reentrancy attacks.
+    pub fn execute_message(
+        self,
+        governance_signer_seeds: &[&[u8]],
+        treasury_seeds: &[&[u8]],
+        governance_pubkey: &Pubkey,
+        treasury_pubkey: &Pubkey,
+        ephemeral_signer_seeds: &[Vec<Vec<u8>>],
+        protected_accounts: &[Pubkey],
+    ) -> Result<(), ProgramError> {
+        // First round of type conversion; from Vec<Vec<Vec<u8>>> to Vec<Vec<&[u8]>>.
+        let ephemeral_signer_seeds = &ephemeral_signer_seeds
+            .iter()
+            .map(|seeds| seeds.iter().map(Vec::as_slice).collect::<Vec<&[u8]>>())
+            .collect::<Vec<Vec<&[u8]>>>();
+
+        for (account_metas, ix_data, account_infos) in
+            self.to_ix_accounts_ix_data_and_accounts().iter()
+        {
+            // A new round of type conversion; from Vec<Vec<&[u8]>> to Vec<&[&[u8]]>.
+            // creates new instance of signer_seeds based on the instruction
+            // this is to avoid multiple signer_seeds entry below
+            let mut signer_seeds = ephemeral_signer_seeds
+                .iter()
+                .map(Vec::as_slice)
+                .collect::<Vec<&[&[u8]]>>();
+
+            let ix = Instruction {
+                program_id: account_infos.last().unwrap().key(),
+                accounts: &account_metas.clone(),
+                data: ix_data.clone(),
+            };
+            for account_meta in ix.accounts.iter() {
+                // Check for protected accounts
+                // Make sure we don't pass protected accounts as writable to CPI calls.
+                if account_meta.is_writable && protected_accounts.contains(&account_meta.pubkey) {
+                    return Err(GovernanceError::ProtectedAccount.into());
+                }
+
+                // Check for signer accounts and add seeds if needed
+                if account_meta.is_signer {
+                    if account_meta.pubkey == governance_pubkey {
+                        signer_seeds.push(governance_signer_seeds);
+                    }
+                    if account_meta.pubkey == treasury_pubkey {
+                        signer_seeds.push(treasury_seeds);
+                    }
+                }
+            }
+            // Instead of trying to do Seed::from(Vec<&[&[u8]]>),
+            // create a Vec<Seed> from a Vec<&[u8]>:
+            let seed_structs: Vec<Seed> = signer_seeds
+                .iter()
+                .flat_map(|seeds| seeds.iter().map(|s| Seed::from(*s)))
+                .collect();
+            let final_signer_seeds = Signer::from(seed_structs.as_slice());
+            slice_invoke_signed(&ix, account_infos.as_slice(), &[final_signer_seeds])?;
+        }
+        Ok(())
+    }
+
+    /// Account indices are resolved in the following order:
+    /// 1. Static accounts.
+    /// 2. All loaded writable accounts.
+    /// 3. All loaded readonly accounts.
+    fn get_account_by_index(&self, index: usize) -> Result<&'a AccountInfo, ProgramError> {
+        if index < self.static_accounts.len() {
+            return Ok(self.static_accounts[index]);
+        }
+
+        let index = index - self.static_accounts.len();
+        if index < self.loaded_writable_accounts.len() {
+            return Ok(self.loaded_writable_accounts[index]);
+        }
+
+        let index = index - self.loaded_writable_accounts.len();
+        if index < self.loaded_readonly_accounts.len() {
+            return Ok(self.loaded_readonly_accounts[index]);
+        }
+
+        Err(GovernanceError::InvalidTransactionMessage.into())
+    }
+
+    /// Whether the account at the `index` is requested as writable.
+    fn is_writable_index(&self, index: usize) -> bool {
+        if self.message.is_static_writable_index(index) {
+            return true;
+        }
+
+        if index < self.static_accounts.len() {
+            // Index is within static accounts but is not writable.
+            return false;
+        }
+
+        // "Skip" the static account indexes.
+        let index = index - self.static_accounts.len();
+
+        index < self.loaded_writable_accounts.len()
+    }
+
+    /// Tranforms ExectuableTransactionMessage into instructions and
+    /// account_infos
+    pub fn to_ix_accounts_ix_data_and_accounts(
+        &self,
+    ) -> Vec<(Vec<AccountMeta<'a>>, &Vec<u8>, Vec<&AccountInfo>)> {
+        let mut result = Vec::new();
+
+        for gov_compiled_instruction in &self.message.instructions {
+            let mut ix_accounts: Vec<AccountMeta<'a>> =
+                Vec::with_capacity(gov_compiled_instruction.account_indexes.len());
+            let mut ix_account_infos: Vec<&'a AccountInfo> =
+                Vec::with_capacity(gov_compiled_instruction.account_indexes.len());
+
+            for account_index in &gov_compiled_instruction.account_indexes {
+                let account_index = usize::from(*account_index);
+                let account_info = self.get_account_by_index(account_index).unwrap();
+                let is_signer = self.message.is_signer_index(account_index);
+
+                let account_meta = if self.is_writable_index(account_index) {
+                    AccountMeta::new(account_info.key(), true, is_signer)
+                } else {
+                    AccountMeta::new(account_info.key(), false, is_signer)
+                };
+
+                ix_accounts.push(account_meta);
+                ix_account_infos.push(account_info);
+            }
+
+            let ix_program_account_info = self
+                .get_account_by_index(usize::from(gov_compiled_instruction.program_id_index))
+                .unwrap();
+            ix_account_infos.push(ix_program_account_info);
+
+            result.push((
+                ix_accounts,
+                &gov_compiled_instruction.data,
+                ix_account_infos,
+            ));
+        }
+
+        result
+    }
+}

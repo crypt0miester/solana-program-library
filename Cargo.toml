@@ -5,11 +5,17 @@ split-debuginfo = "unpacked"
 members = [
   "programs/addin-mock",
   "programs/addin-api",
+  "programs/p-addin-api",
   "programs/governance",
+  "programs/p-governance",
   "programs/test-sdk",
   "programs/tools",
+  "programs/p-tools",
+  "programs/p-token-2022",
   "programs/chat",
-  "programs/transfer-hook/example"
+  "programs/transfer-hook/example",
+  "programs/utils/crate",
+  "programs/utils/macro",
 ]
 
 exclude = []
@@ -42,6 +48,9 @@ spl-tlv-account-resolution = "0.9.0"
 spl-transfer-hook-interface = "0.9.0"
 spl-token-client = "0.13.0"
 spl-token = "4.0" 
+quote = "1.0"
+regex = "1"
+syn = "1.0"
 
 [workspace.lints.rust.unexpected_cfgs]
 level = "warn"

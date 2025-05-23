@@ -1,0 +1,51 @@
+[package]
+name = "p-spl-governance"
+version = "3.1.1"
+description = "Solana Program Library Governance Program"
+authors = ["Solana Labs Maintainers <maintainers@solanalabs.com>"]
+repository = "https://github.com/solana-labs/solana-program-library"
+license = "Apache-2.0"
+edition = "2021"
+
+[features]
+default = ["custom-heap"]
+custom-heap = []
+no-entrypoint = []
+test-sbf = []
+
+[dependencies]
+arrayref = "0.3.7"
+bincode = "1.3.2"
+num-derive = "0.4"
+num-traits = "0.2"
+serde = "1.0.195"
+serde_derive = "1.0.103"
+p-spl-governance-tools = { version = "0.1.3", path ="../p-tools"}
+p-spl-governance-addin-api = { version = "0.1.3", path ="../p-addin-api"}
+p-token-2022 = { path ="../p-token-2022"}
+pinocchio = "0.8.4"
+pinocchio-log = "0.4.0"
+pinocchio-pubkey = "0.2.4"
+pinocchio-system = "0.2.3"
+thiserror = "1.0"
+solana-sha256-hasher = "2.2.1"
+pinocchio-utils-macro = {  path ="../utils/macro" }
+
+[dev-dependencies]
+assert_matches = "1.5.0"
+base64 = "0.21"
+proptest = "1.5"
+solana-program-test = { workspace = true }
+solana-sdk = { workspace = true }
+spl-governance-test-sdk = { version = "0.1.3", path ="../test-sdk"}
+spl-governance-addin-mock = { version = "0.1.3", path ="../addin-mock"}
+# only used due to the one in crates.io is not the latest.
+spl-transfer-hook-example = { path = "../transfer-hook/example", features = [
+  "no-entrypoint",
+] }
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[lints]
+workspace = true

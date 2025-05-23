@@ -1,0 +1,14 @@
+[package]
+name = "p-token-2022"
+description = "Pinocchio helpers to invoke Token-2022 instructions"
+version = "0.3.0"
+readme = "./README.md"
+edition = "2021"
+
+[lib]
+crate-type = ["rlib"]
+proc-macro = true
+
+[dependencies]
+pinocchio = "0.8.4"
+pinocchio-pubkey = "0.2.4"

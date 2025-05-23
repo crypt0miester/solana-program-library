@@ -1,0 +1,86 @@
+//! ProgramMetadata Account
+
+use {
+    crate::state::enums::GovernanceAccountType,
+    p_spl_governance_tools::account::{get_account_data_borrowed, AccountMaxSize, DataLen, IsInitialized},
+    pinocchio::{
+        account_info::AccountInfo,
+        program_error::ProgramError,
+        pubkey::{find_program_address, Pubkey},
+        sysvars::clock::Slot,
+    },
+};
+
+/// Program metadata account. It stores information about the particular
+/// SPL-Governance program instance
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProgramMetadata {
+    /// Governance account type
+    pub account_type: GovernanceAccountType,
+
+    /// The slot when the metadata was captured
+    pub updated_at: Slot,
+
+    /// The version of the program
+    /// Max 11 characters XXX.YYY.ZZZ
+    pub version: String,
+
+    /// Reserved
+    pub reserved: [u8; 64],
+}
+
+impl AccountMaxSize for ProgramMetadata {
+    fn get_max_size(&self) -> Option<usize> {
+        Some(88)
+    }
+}
+
+impl DataLen for ProgramMetadata {
+    const LEN: usize = core::mem::size_of::<ProgramMetadata>();
+}
+
+impl IsInitialized for ProgramMetadata {
+    fn is_initialized(&self) -> bool {
+        self.account_type == GovernanceAccountType::ProgramMetadata
+    }
+}
+
+/// Returns ProgramMetadata PDA address
+pub fn get_program_metadata_address(program_id: &Pubkey) -> Pubkey {
+    find_program_address(&get_program_metadata_seeds(), program_id).0
+}
+
+/// Returns ProgramMetadata PDA seeds
+pub fn get_program_metadata_seeds<'a>() -> [&'a [u8]; 1] {
+    [b"metadata"]
+}
+
+/// Deserializes account and checks owner program
+pub fn get_program_metadata_data(
+    program_id: &Pubkey,
+    program_metadata_info: &AccountInfo,
+) -> Result<ProgramMetadata, ProgramError> {
+    let program_metadata = get_account_data_borrowed::<ProgramMetadata>(program_id, program_metadata_info)?;
+    Ok(program_metadata.clone())
+}
+
+#[cfg(test)]
+mod test {
+
+    use p_spl_governance_tools::account::to_bytes;
+
+    use super::*;
+
+    #[test]
+    fn test_max_size() {
+        let program_metadata_data = ProgramMetadata {
+            account_type: GovernanceAccountType::TokenOwnerRecordV2,
+            updated_at: 10,
+            reserved: [0; 64],
+            version: "111.122.155".to_string(),
+        };
+
+        let size = unsafe { to_bytes(&program_metadata_data) }.len();
+        assert_eq!(program_metadata_data.get_max_size(), Some(size));
+    }
+}

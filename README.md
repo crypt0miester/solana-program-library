@@ -194,6 +194,41 @@ The Council can also be used for protocols and communities which haven't launche
 In such cases the DAO can be setup with the yet to launch token and the Council which would governed
 the DAO until the token is distributed.
 
+## Development
+
+### Environment Setup
+
+1. Install the latest [Solana tools](https://docs.solana.com/cli/install-solana-cli-tools).
+2. Install the latest [Rust stable](https://rustup.rs/). If you already have Rust, run `rustup update` to get the latest version.
+3. Install the `libudev` development package for your distribution (`libudev-dev` on Debian-derived distros, `libudev-devel` on Redhat-derived).
+
+### Build
+
+### Build on-chain programs
+
+```bash
+# To build all on-chain programs
+$ cargo build-sbf
+
+# To build a specific on-chain program
+$ cd programs/governance
+$ cargo build-sbf
+```
+
+### Build clients
+
+```bash
+# To build all clients
+$ cargo build
+```
+
+### Test
+
+Unit tests contained within all projects can be run with:
+```bash
+$ cargo test-sbf 
+```
+
 ### Proposal Workflow
 
 ![Proposal Workflow](./resources/governance-workflow.jpg)
